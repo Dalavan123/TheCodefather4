@@ -5,7 +5,7 @@ export async function getDocumentsController() {
   try {
     const docs = await getAllDocuments();
     return NextResponse.json(docs);
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "Failed to fetch documents" }, { status: 500 });
   }
 }
