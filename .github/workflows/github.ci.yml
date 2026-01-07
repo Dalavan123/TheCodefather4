@@ -37,9 +37,9 @@ jobs:
       - name: Run Tests
         run: npm test
         env:
-          DATABASE_URL: "postgresql://test:test@localhost:5432/testdb"
+          DATABASE_URL: "file:./test.db"
 
       - name: Build
         run: npm run build
         env:
-          DATABASE_URL: "postgresql://test:test@localhost:5432/testdb"
+          DATABASE_URL: "file:./test.db"
