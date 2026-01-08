@@ -43,7 +43,9 @@ next-env.d.ts
 # database
 data/*.db
 data/*.sqlite
-.env
+prisma/data/*.db 
+*.db 
+*.ba
 
 /app/generated/prisma
 /generated/prisma
