@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 export default function LoginPage() {
@@ -13,9 +14,7 @@ export default function LoginPage() {
 
     const res = await fetch("/api/auth/login", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
 
@@ -30,9 +29,9 @@ export default function LoginPage() {
 
   return (
     <main className="p-6">
-      <a href="/" className="underline text-sm mt-4 inline-block">
+      <Link href="/" className="underline text-sm mt-4 inline-block">
         Tillbaka till start
-      </a>
+      </Link>
 
       <h1 className="text-xl mb-4">Login</h1>
 
@@ -43,7 +42,6 @@ export default function LoginPage() {
           value={email}
           onChange={e => setEmail(e.target.value)}
         />
-
         <input
           className="border p-2 w-full"
           type="password"
@@ -51,7 +49,6 @@ export default function LoginPage() {
           value={password}
           onChange={e => setPassword(e.target.value)}
         />
-
         <button className="border px-4 py-2">Logga in</button>
       </form>
 
