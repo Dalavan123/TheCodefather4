@@ -1,17 +1,45 @@
 import { prisma } from "@/lib/prisma";
-export const dynamic = 'force-dynamic'
+import { cookies } from "next/headers";
+
+export const dynamic = "force-dynamic";
 
 export default async function Home() {
+  const cookieStore = await cookies();
+  const userId = Number(cookieStore.get("session")?.value);
+
   const docs = await prisma.document.findMany({
     orderBy: { createdAt: "desc" },
     select: { id: true, title: true, createdAt: true },
   });
 
+  const user = userId
+    ? await prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true },
+      })
+    : null;
+
   return (
-    <main style={{ padding: 24 }}>
-      <h1>Documents</h1>
+    <main className="p-6">
+      <div className="mb-4 flex items-center gap-4">
+        {user ? (
+          <>
+            <p className="text-sm text-gray-600">Inloggad som: {user.email}</p>
+            <form action="/api/auth/logout" method="POST">
+              <button className="underline text-sm">Logga ut</button>
+            </form>
+          </>
+        ) : (
+          <a className="underline text-sm" href="/login">
+            Logga in
+          </a>
+        )}
+      </div>
+
+      <h1 className="text-xl mb-4">Documents</h1>
+
       <ul>
-        {docs.map((d) => (
+        {docs.map(d => (
           <li key={d.id}>
             {d.title} — {new Date(d.createdAt).toLocaleString()}
           </li>
