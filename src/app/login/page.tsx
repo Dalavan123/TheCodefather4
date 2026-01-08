@@ -30,6 +30,10 @@ export default function LoginPage() {
 
   return (
     <main className="p-6">
+      <a href="/" className="underline text-sm mt-4 inline-block">
+        Tillbaka till start
+      </a>
+
       <h1 className="text-xl mb-4">Login</h1>
 
       <form onSubmit={onSubmit} className="space-y-2">
