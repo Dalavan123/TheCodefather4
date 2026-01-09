@@ -1,11 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+
+type Doc = {
+  id: number;
+  title: string;
+  category?: string;
+  status?: string;
+  createdAt?: string;
+};
 
 export default function DocumentsPage() {
   const [file, setFile] = useState<File | null>(null);
   const [category, setCategory] = useState("meeting_notes");
   const [msg, setMsg] = useState<string>("");
+
+  const [docs, setDocs] = useState<Doc[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  async function loadDocs() {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/documents", { method: "GET" });
+      const data = await res.json();
+      setDocs(Array.isArray(data) ? data : []);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadDocs();
+  }, []);
 
   async function upload() {
     if (!file) return;
@@ -28,14 +55,19 @@ export default function DocumentsPage() {
       return;
     }
 
-    setMsg(`✅ Uploaded. documentId=${data.documentId}, chunks=${data.chunksCreated}`);
-    // här kan du också trigga omhämtning av /api/documents om du listar docs på sidan
+    setMsg(
+      `✅ Uploaded. documentId=${data.documentId}, chunks=${data.chunksCreated}`
+    );
+
+    // refetch dokumentlistan så du ser nya dokumentet direkt
+    await loadDocs();
   }
 
   return (
     <div style={{ padding: 16 }}>
       <h1>Documents</h1>
 
+      {/* Upload */}
       <div style={{ marginTop: 12 }}>
         <input
           type="file"
@@ -57,6 +89,24 @@ export default function DocumentsPage() {
 
         <div style={{ marginTop: 8 }}>{msg}</div>
       </div>
+
+      {/* Lista dokument */}
+      <h2 style={{ marginTop: 24 }}>Alla dokument</h2>
+
+      {loading ? (
+        <div>Loading...</div>
+      ) : docs.length === 0 ? (
+        <div>Inga dokument ännu.</div>
+      ) : (
+        <ul style={{ paddingLeft: 18 }}>
+          {docs.map((d) => (
+            <li key={d.id}>
+              <Link href={`/documents/${d.id}`}>{d.title}</Link>
+              {d.status ? <span style={{ opacity: 0.7 }}> — {d.status}</span> : null}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
