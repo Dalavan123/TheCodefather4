@@ -55,58 +55,79 @@ export default function DocumentsPage() {
       return;
     }
 
-    setMsg(
-      `✅ Uploaded. documentId=${data.documentId}, chunks=${data.chunksCreated}`
-    );
-
-    // refetch dokumentlistan så du ser nya dokumentet direkt
+    setMsg("Uploaded");
     await loadDocs();
   }
 
   return (
-    <div style={{ padding: 16 }}>
-      <h1>Documents</h1>
+    <main className="min-h-screen bg-black text-white p-6">
+      <h1 className="text-2xl mb-6 text-center">Documents</h1>
 
       {/* Upload */}
-      <div style={{ marginTop: 12 }}>
-        <input
-          type="file"
-          accept=".txt,.md,text/plain,text/markdown"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-        />
+      <div className="mx-auto max-w-2xl rounded border border-gray-800 p-4">
+        <div className="flex items-center gap-3">
+          {/* Hidden file input */}
+          <input
+            id="file"
+            type="file"
+            accept=".txt,.md,text/plain,text/markdown"
+            className="hidden"
+            onChange={e => setFile(e.target.files?.[0] ?? null)}
+          />
 
-        <select value={category} onChange={(e) => setCategory(e.target.value)}>
-          <option value="meeting_notes">Mötesanteckningar</option>
-          <option value="reports">Rapporter</option>
-          <option value="docs">Dokumentation</option>
-          <option value="project">Projektbeskrivningar</option>
-          <option value="other">Övrigt</option>
-        </select>
+          {/* Visible file button */}
+          <label
+            htmlFor="file"
+            className="cursor-pointer rounded border border-gray-700 bg-gray-900 px-4 py-2 text-sm"
+          >
+            {file ? file.name : "Välj fil"}
+          </label>
 
-        <button onClick={upload} style={{ marginLeft: 8 }}>
-          Upload
-        </button>
+          <select
+            value={category}
+            onChange={e => setCategory(e.target.value)}
+            className="rounded border border-gray-700 bg-gray-900 px-3 py-2 text-sm"
+          >
+            <option value="meeting_notes">Mötesanteckningar</option>
+            <option value="reports">Rapporter</option>
+            <option value="docs">Dokumentation</option>
+            <option value="project">Projektbeskrivningar</option>
+            <option value="other">Övrigt</option>
+          </select>
 
-        <div style={{ marginTop: 8 }}>{msg}</div>
+          <button
+            onClick={upload}
+            className="rounded bg-cyan-500 px-4 py-2 text-sm text-black"
+          >
+            Upload
+          </button>
+        </div>
+
+        {msg && <div className="mt-3 text-sm">{msg}</div>}
       </div>
 
       {/* Lista dokument */}
-      <h2 style={{ marginTop: 24 }}>Alla dokument</h2>
+      <h2 className="mt-10 mb-4 text-lg text-center">Mina dokument</h2>
 
-      {loading ? (
-        <div>Loading...</div>
-      ) : docs.length === 0 ? (
-        <div>Inga dokument ännu.</div>
-      ) : (
-        <ul style={{ paddingLeft: 18 }}>
-          {docs.map((d) => (
-            <li key={d.id}>
-              <Link href={`/documents/${d.id}`}>{d.title}</Link>
-              {d.status ? <span style={{ opacity: 0.7 }}> — {d.status}</span> : null}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+      <div className="mx-auto max-w-2xl space-y-3">
+        {loading ? (
+          <div>Loading...</div>
+        ) : docs.length === 0 ? (
+          <div>Inga dokument ännu.</div>
+        ) : (
+          docs.map(d => (
+            <div
+              key={d.id}
+              className="rounded border border-gray-800 bg-gray-900 px-4 py-3"
+            >
+              <Link href={`/documents/${d.id}`} className="font-medium">
+                {d.title}
+              </Link>
+              {d.status && <span className="opacity-70"> — {d.status}</span>}
+            </div>
+          ))
+        )}
+      </div>
+    </main>
   );
 }
