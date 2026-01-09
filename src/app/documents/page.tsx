@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 type Doc = {
   id: number;
   title: string;
+  userId: number; // behövs för ägarkoll
   category?: string;
   status?: string;
   createdAt?: string;
@@ -18,6 +19,7 @@ export default function DocumentsPage() {
 
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loading, setLoading] = useState(true);
+  const [meUserId, setMeUserId] = useState<number | null>(null);
 
   async function loadDocs() {
     setLoading(true);
@@ -30,7 +32,18 @@ export default function DocumentsPage() {
     }
   }
 
+  async function loadMe() {
+    try {
+      const res = await fetch("/api/auth/me", { method: "GET" });
+      const data = await res.json();
+      setMeUserId(data?.user?.id ?? null);
+    } catch {
+      setMeUserId(null);
+    }
+  }
+
   useEffect(() => {
+    loadMe();
     loadDocs();
   }, []);
 
@@ -42,7 +55,6 @@ export default function DocumentsPage() {
     const fd = new FormData();
     fd.append("file", file);
     fd.append("category", category);
-    fd.append("userId", "1"); // tills ni har auth
 
     const res = await fetch("/api/documents/upload", {
       method: "POST",
@@ -52,10 +64,31 @@ export default function DocumentsPage() {
     const data = await res.json();
     if (!res.ok) {
       setMsg(data?.error ?? "Upload failed");
+      // om session dog: uppdatera me
+      await loadMe();
       return;
     }
 
-    setMsg("Uploaded");
+    setMsg("Uploaded ✅");
+    await loadDocs();
+  }
+
+  async function deleteDoc(id: number, title: string) {
+    const ok = window.confirm(`Är du säker att du vill radera "${title}"?`);
+    if (!ok) return;
+
+    const res = await fetch(`/api/documents/${id}`, {
+      method: "DELETE",
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      setMsg(data?.error ?? "Delete failed");
+      await loadMe();
+      return;
+    }
+
+    setMsg(`🗑️ Deleted document ${id}`);
     await loadDocs();
   }
 
@@ -66,16 +99,14 @@ export default function DocumentsPage() {
       {/* Upload */}
       <div className="mx-auto max-w-2xl rounded border border-gray-800 p-4">
         <div className="flex items-center gap-3">
-          {/* Hidden file input */}
           <input
             id="file"
             type="file"
             accept=".txt,.md,text/plain,text/markdown"
             className="hidden"
-            onChange={e => setFile(e.target.files?.[0] ?? null)}
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           />
 
-          {/* Visible file button */}
           <label
             htmlFor="file"
             className="cursor-pointer rounded border border-gray-700 bg-gray-900 px-4 py-2 text-sm"
@@ -85,7 +116,7 @@ export default function DocumentsPage() {
 
           <select
             value={category}
-            onChange={e => setCategory(e.target.value)}
+            onChange={(e) => setCategory(e.target.value)}
             className="rounded border border-gray-700 bg-gray-900 px-3 py-2 text-sm"
           >
             <option value="meeting_notes">Mötesanteckningar</option>
@@ -97,17 +128,28 @@ export default function DocumentsPage() {
 
           <button
             onClick={upload}
-            className="rounded bg-cyan-500 px-4 py-2 text-sm text-black"
+            disabled={meUserId === null}
+            className={`rounded px-4 py-2 text-sm ${
+              meUserId === null
+                ? "bg-gray-700 text-gray-300 cursor-not-allowed"
+                : "bg-cyan-500 text-black"
+            }`}
           >
             Upload
           </button>
         </div>
 
+        {meUserId === null && (
+          <div className="mt-3 text-sm opacity-80">
+            Du måste vara inloggad för att ladda upp och radera dokument.
+          </div>
+        )}
+
         {msg && <div className="mt-3 text-sm">{msg}</div>}
       </div>
 
       {/* Lista dokument */}
-      <h2 className="mt-10 mb-4 text-lg text-center">Mina dokument</h2>
+      <h2 className="mt-10 mb-4 text-lg text-center">Alla dokument</h2>
 
       <div className="mx-auto max-w-2xl space-y-3">
         {loading ? (
@@ -115,15 +157,28 @@ export default function DocumentsPage() {
         ) : docs.length === 0 ? (
           <div>Inga dokument ännu.</div>
         ) : (
-          docs.map(d => (
+          docs.map((d) => (
             <div
               key={d.id}
-              className="rounded border border-gray-800 bg-gray-900 px-4 py-3"
+              className="flex items-center justify-between rounded border border-gray-800 bg-gray-900 px-4 py-3"
             >
-              <Link href={`/documents/${d.id}`} className="font-medium">
-                {d.title}
-              </Link>
-              {d.status && <span className="opacity-70"> — {d.status}</span>}
+              <div>
+                <Link href={`/documents/${d.id}`} className="font-medium">
+                  {d.title}
+                </Link>
+                {d.status && <span className="opacity-70"> — {d.status}</span>}
+              </div>
+
+              {/* Delete endast för ägaren */}
+              {meUserId !== null && meUserId === d.userId && (
+                <button
+                  onClick={() => deleteDoc(d.id, d.title)}
+                  className="rounded border border-red-500 px-3 py-1 text-sm text-red-400 hover:bg-red-500 hover:text-black"
+                  title="Delete document"
+                >
+                  Delete
+                </button>
+              )}
             </div>
           ))
         )}

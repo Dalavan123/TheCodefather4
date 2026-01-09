@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSessionUser } from "@/backend/auth/session";
 
 export const runtime = "nodejs";
 
@@ -18,18 +19,20 @@ function chunkText(text: string, chunkSize = 1200, overlap = 200) {
 
 export async function POST(req: Request) {
   try {
-    const formData = await req.formData();
+    // ✅ Kräver login
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
+    const formData = await req.formData();
     const file = formData.get("file");
     const category = String(formData.get("category") ?? "other");
-    // MVP: tills ni har auth, använd en fast userId (eller skicka in userId från frontend)
-    const userId = Number(formData.get("userId") ?? 1);
 
     if (!(file instanceof File)) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
-    // Enkel validering (ni kan tillåta .md också)
     const allowed = ["text/plain", "text/markdown", ""];
     if (!allowed.includes(file.type)) {
       return NextResponse.json(
@@ -43,10 +46,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "File is empty" }, { status: 400 });
     }
 
-    // 1) Skapa Document
     const doc = await prisma.document.create({
       data: {
-        userId,
+        userId: user.id,
         title: file.name,
         category,
         originalName: file.name,
@@ -56,7 +58,6 @@ export async function POST(req: Request) {
       select: { id: true },
     });
 
-    // 2) Chunk:a + spara chunks
     const chunkStrings = chunkText(text);
 
     await prisma.chunk.createMany({
@@ -67,7 +68,6 @@ export async function POST(req: Request) {
       })),
     });
 
-    // 3) Markera klar
     await prisma.document.update({
       where: { id: doc.id },
       data: { status: "ready" },
@@ -78,7 +78,7 @@ export async function POST(req: Request) {
       documentId: doc.id,
       chunksCreated: chunkStrings.length,
     });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });
   }
 }

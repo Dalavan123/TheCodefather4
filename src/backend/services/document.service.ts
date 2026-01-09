@@ -6,10 +6,10 @@ export async function getAllDocuments() {
     select: {
       id: true,
       title: true,
+      userId: true,
       category: true,
       status: true,
       createdAt: true,
-      userId: true,
     },
   });
 }
