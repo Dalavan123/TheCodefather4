@@ -1,22 +1,36 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 
-export async function POST(request: Request) {
-  const { email, password } = await request.json();
+const SESSION_COOKIE = "session_token";
 
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true, passwordHash: true },
+export async function POST(req: NextRequest) {
+  const body = await req.json().catch(() => null);
+  const email = String(body?.email ?? "").trim().toLowerCase();
+  const password = String(body?.password ?? "");
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) return NextResponse.json({ error: "Fel email eller lösenord" }, { status: 401 });
+
+  const ok = await bcrypt.compare(password, user.passwordHash);
+  if (!ok) return NextResponse.json({ error: "Fel email eller lösenord" }, { status: 401 });
+
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  await prisma.session.create({
+    data: { token, userId: user.id, expiresAt },
   });
 
-  if (!user || user.passwordHash !== password) {
-    return NextResponse.json(
-      { error: "Fel email eller lösenord" },
-      { status: 401 }
-    );
-  }
+  const res = NextResponse.json({ ok: true, user: { id: user.id, email: user.email } });
+  res.cookies.set(SESSION_COOKIE, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    expires: expiresAt,
+  });
 
-  const res = NextResponse.json({ ok: true });
-  res.cookies.set("session", String(user.id), { httpOnly: true, path: "/" });
   return res;
 }
