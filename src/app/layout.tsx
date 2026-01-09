@@ -1,3 +1,4 @@
+import "./globals.css";
 import Link from "next/link";
 
 export default function RootLayout({
@@ -9,8 +10,12 @@ export default function RootLayout({
     <html lang="sv">
       <body>
         <nav style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
-          <Link href="/" style={{ marginRight: 12 }}>Home</Link>
-          <Link href="/documents" style={{ marginRight: 12 }}>Documents</Link>
+          <Link href="/" style={{ marginRight: 12 }}>
+            Home
+          </Link>
+          <Link href="/documents" style={{ marginRight: 12 }}>
+            Documents
+          </Link>
         </nav>
 
         <main style={{ padding: 16 }}>{children}</main>
