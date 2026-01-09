@@ -1,24 +1,26 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
-  _req: Request,
-  { params }: { params: { id: string } }
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = Number(params.id);
-  if (!Number.isFinite(id)) {
+  const { id } = await params;
+  const docId = Number(id);
+
+  if (!Number.isFinite(docId)) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
 
   const doc = await prisma.document.findUnique({
-    where: { id },
+    where: { id: docId },
     select: {
       id: true,
       title: true,
       category: true,
       status: true,
       originalName: true,
-      contentText: true, // kan vara stor – men bra för debug
+      contentText: true,
       createdAt: true,
       userId: true,
     },
