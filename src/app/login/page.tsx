@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 
 export default function LoginPage() {
@@ -29,10 +28,6 @@ export default function LoginPage() {
 
   return (
     <main className="p-6">
-      <Link href="/" className="underline text-sm mt-4 inline-block">
-        Tillbaka till start
-      </Link>
-
       <h1 className="text-xl mb-4">Login</h1>
 
       <form onSubmit={onSubmit} className="space-y-2">
