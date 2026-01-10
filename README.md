@@ -1,36 +1,133 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TheCodefather4
 
-## Getting Started
+En Next.js-applikation för dokumenthantering med användarautentisering.
 
-First, run the development server:
+## Funktioner
+
+- Användarregistrering och inloggning (session-baserad)
+- Uppladdning av dokument (.txt, .md)
+- Automatisk chunkning av dokument
+- Visning och radering av egna dokument
+
+## Tech Stack
+
+- Next.js 15 med App Router
+- Prisma ORM med SQLite
+- bcryptjs för lösenordshashing
+- Tailwind CSS för styling
+
+## Installation
+
+### 1. Klona projektet
+
+```bash
+git clone https://github.com/AdrianCPO/TheCodefather4.git
+cd TheCodefather4
+```
+
+### 2. Installera dependencies
+
+```bash
+npm install
+```
+
+### 3. Skapa .env fil
+
+Skapa en `.env` fil i projektets rot och lägg till:
+
+```env
+DATABASE_URL="file:./dev.db"
+NODE_ENV="development"
+```
+
+### 4. Sätt upp databasen
+
+Generera Prisma Client:
+
+```bash
+npx prisma generate
+```
+
+Kör migrationer för att skapa databasen:
+
+```bash
+npx prisma migrate dev --name init
+```
+
+(Valfritt) Seed databasen med testdata:
+
+```bash
+npx prisma db seed
+```
+
+### 5. Starta utvecklingsservern
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Öppna [http://localhost:3000](http://localhost:3000) i din webbläsare.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Databashantering
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Öppna Prisma Studio
 
-## Learn More
+För att se och hantera data i databasen:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npx prisma studio
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Reset databasen
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Om du behöver återställa databasen:
 
-## Deploy on Vercel
+```bash
+npx prisma migrate reset
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Användning
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. **Registrera ett konto:** Gå till `/register`
+2. **Logga in:** Gå till `/login`
+3. **Ladda upp dokument:** Gå till `/documents` efter inloggning
+
+## API Endpoints
+
+- `POST /api/auth/register` - Skapa nytt konto
+- `POST /api/auth/login` - Logga in
+- `POST /api/auth/logout` - Logga ut
+- `GET /api/auth/me` - Hämta inloggad användare
+- `POST /api/documents/upload` - Ladda upp dokument (kräver inloggning)
+- `GET /api/documents` - Lista alla dokument
+- `DELETE /api/documents/[id]` - Radera dokument (endast ägare)
+
+## Testning
+
+Kör tester med Jest:
+
+```bash
+npm test
+```
+
+## Databasschema
+
+### User
+
+- id, email, password, createdAt
+
+### Session
+
+- id, userId, token, expiresAt, createdAt
+
+### Document
+
+- id, name, size, mimeType, userId, createdAt
+
+### Chunk
+
+- id, documentId, content, chunkIndex, createdAt
+
+## Licens
+
+Detta är ett skolprojekt.

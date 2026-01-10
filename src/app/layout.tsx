@@ -1,24 +1,19 @@
+import { getSessionUser } from "@/backend/auth/session";
 import "./globals.css";
-import Link from "next/link";
+import Navbar from "@/components/layout/Navbar";
+import LayoutWrapper from "@/components/layout/LayoutWrapper";
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <html lang="sv">
-      <body>
-        <nav style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
-          <Link href="/" style={{ marginRight: 12 }}>
-            Home
-          </Link>
-          <Link href="/documents" style={{ marginRight: 12 }}>
-            Documents
-          </Link>
-        </nav>
+  const user = await getSessionUser();
 
-        <main style={{ padding: 16 }}>{children}</main>
+  return (
+    <html lang="en">
+      <body>
+        <LayoutWrapper user={user}>{children}</LayoutWrapper>
       </body>
     </html>
   );

@@ -1,0 +1,35 @@
+"use client";
+
+import Link from "next/link";
+
+interface SidebarProps {
+  isOpen: boolean;
+}
+
+export default function Sidebar({ isOpen }: SidebarProps) {
+  return (
+    <aside
+      className={`bg-black border-r-1 border-gray-700 text-white transition-all duration-300 ${
+        isOpen ? "w-[30%] min-w-[250px]" : "w-0"
+      } overflow-hidden`}
+    >
+      <div className="p-4">
+        <div>
+          <h2 className="text-xl font-bold mb-6">Menu</h2>
+        </div>
+
+        <nav className="space-y-2">
+          <span className="block hover:bg-gray-800 p-3 rounded">
+            Document Asisstant
+          </span>
+          <Link
+            href="/documents"
+            className="block hover:bg-gray-800 p-3 rounded"
+          >
+            Documents
+          </Link>
+        </nav>
+      </div>
+    </aside>
+  );
+}
