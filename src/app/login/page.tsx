@@ -2,89 +2,113 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
+import { Button } from "@/components/ui/Button";
+import { ErrorMessage } from "@/components/ui/ErrorMessage";
+import { useForm } from "@/hooks/useForm";
+import { validators } from "@/lib/validation";
 
 export default function LoginPage() {
   const router = useRouter();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { fields, isSubmitting, submitError, isValid, handleChange, handleBlur, handleSubmit } =
+    useForm({
+      initialValues: {
+        email: "",
+        password: "",
+      },
+      validators: {
+        email: validators.email,
+        password: validators.password,
+      },
+      onSubmit: async (values) => {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: values.email.trim().toLowerCase(),
+            password: values.password,
+          }),
+        });
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data?.error || "Fel e-postadress eller lösenord");
+        }
 
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          password,
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(data?.error || "Login failed");
-        return;
-      }
-
-      // ✅ bättre än window.location.href i Next
-      router.push("/documents");
-      router.refresh();
-    } catch {
-      setError("Något gick fel. Försök igen.");
-    } finally {
-      setLoading(false);
-    }
-  }
+        router.push("/documents");
+        router.refresh();
+      },
+    });
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-gradient-to-b from-black to-slate-900 text-white p-6">
       <div className="w-full max-w-sm space-y-6">
-        <h1 className="text-2xl font-semibold text-center">Logga in</h1>
+        <div className="text-center">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+            Logga in
+          </h1>
+          <p className="text-sm text-slate-400 mt-2">Välkommen tillbaka!</p>
+        </div>
 
-        <form onSubmit={onSubmit} className="space-y-4">
-          <input
-            className="w-full rounded border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          <Input
+            id="email"
+            label="E-postadress"
             type="email"
             required
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            autoFocus
+            autoComplete="email"
+            placeholder="namn@exempel.se"
+            value={fields.email.value}
+            error={fields.email.error}
+            touched={fields.email.touched}
+            onChange={(e) => handleChange("email", e.target.value)}
+            onBlur={() => handleBlur("email")}
           />
 
-          <input
-            className="w-full rounded border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-            type="password"
+          <PasswordInput
+            id="password"
+            label="Lösenord"
             required
-            placeholder="Lösenord"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+            placeholder="Ange ditt lösenord"
+            value={fields.password.value}
+            error={fields.password.error}
+            touched={fields.password.touched}
+            onChange={(e) => handleChange("password", e.target.value)}
+            onBlur={() => handleBlur("password")}
           />
 
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full rounded py-2 font-medium text-black transition ${
-              loading ? "bg-cyan-300 cursor-not-allowed" : "bg-cyan-500 hover:bg-cyan-400"
-            }`}
-          >
-            {loading ? "Loggar in..." : "Logga in"}
-          </button>
+          <div className="flex justify-end">
+            <Link
+              href="/forgot-password"
+              className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors underline-offset-2 hover:underline"
+            >
+              Glömt lösenord?
+            </Link>
+          </div>
+
+          <Button type="submit" isLoading={isSubmitting} disabled={!isValid}>
+            Logga in
+          </Button>
         </form>
 
-        {error && <p className="text-center text-sm text-red-400">{error}</p>}
+        <ErrorMessage message={submitError} />
 
         <p className="text-center text-sm text-slate-300">
           Inget konto?{" "}
-          <Link className="underline text-cyan-400" href="/register">
-            Registrera
+          <Link
+            className="font-medium text-cyan-400 hover:text-cyan-300 transition-colors underline-offset-2 hover:underline"
+            href="/register"
+          >
+            Registrera dig här
           </Link>
+        </p>
+
+        <p className="text-center text-xs text-slate-500">
+          🔒 Din information är säker och krypterad
         </p>
       </div>
     </main>
