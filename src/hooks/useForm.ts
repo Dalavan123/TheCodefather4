@@ -102,8 +102,9 @@ export function useForm<T extends Record<string, string>>({
           values[key as keyof T] = fields[key as keyof T].value as T[keyof T];
         });
         await onSubmit(values);
-      } catch (error: any) {
-        setSubmitError(error.message || "Något gick fel");
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Något gick fel";
+        setSubmitError(message);
       } finally {
         setIsSubmitting(false);
       }
