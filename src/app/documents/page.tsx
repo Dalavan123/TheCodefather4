@@ -7,6 +7,7 @@ type Doc = {
   id: number;
   title: string;
   userId: number; // behövs för ägarkoll
+  uploaderEmail?: string | null;
   category?: string;
   status?: string;
   createdAt?: string;
@@ -104,7 +105,7 @@ export default function DocumentsPage() {
             type="file"
             accept=".txt,.md,text/plain,text/markdown"
             className="hidden"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            onChange={e => setFile(e.target.files?.[0] ?? null)}
           />
 
           <label
@@ -116,7 +117,7 @@ export default function DocumentsPage() {
 
           <select
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onChange={e => setCategory(e.target.value)}
             className="rounded border border-gray-700 bg-gray-900 px-3 py-2 text-sm"
           >
             <option value="meeting_notes">Mötesanteckningar</option>
@@ -157,16 +158,29 @@ export default function DocumentsPage() {
         ) : docs.length === 0 ? (
           <div>Inga dokument ännu.</div>
         ) : (
-          docs.map((d) => (
+          docs.map(d => (
             <div
               key={d.id}
               className="flex items-center justify-between rounded border border-gray-800 bg-gray-900 px-4 py-3"
             >
-              <div>
-                <Link href={`/documents/${d.id}`} className="font-medium">
-                  {d.title}
-                </Link>
-                {d.status && <span className="opacity-70"> — {d.status}</span>}
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <Link href={`/documents/${d.id}`} className="font-medium">
+                    {d.title}
+                  </Link>
+                  {d.status && (
+                    <span className="opacity-70"> — {d.status}</span>
+                  )}
+                </div>
+
+                <div className="mt-1 text-xs text-gray-400">
+                  Uppladdad av{" "}
+                  <span className="inline-flex items-center rounded-full border border-gray-700 bg-black/40 px-2 py-0.5 text-gray-200">
+                    {meUserId !== null && meUserId === d.userId
+                      ? "Du"
+                      : d.uploaderEmail ?? `User #${d.userId}`}
+                  </span>
+                </div>
               </div>
 
               {/* Delete endast för ägaren */}
