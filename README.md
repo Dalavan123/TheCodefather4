@@ -36,8 +36,7 @@ npm install
 Skapa en `.env` fil i projektets rot och lägg till:
 
 ```env
-DATABASE_URL="file:./dev.db"
-NODE_ENV="development"
+DATABASE_URL="file:./data/TheCodeFather4.db"
 ```
 
 ### 4. Sätt upp databasen
