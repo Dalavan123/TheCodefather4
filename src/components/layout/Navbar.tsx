@@ -22,7 +22,7 @@ export default function Navbar({ user, onToggleSidebar }: NavbarProps) {
               <span className="text-sm text-gray-300">Välkommen</span>
               {/* badge */}
               <span className="text-sm font-medium px-2.5 py-1 rounded-full border border-gray-700 bg-gray-900 text-gray-200">
-                {displayName}
+                {user.email}
               </span>
             </div>
           )}
