@@ -163,17 +163,18 @@ export default function DocumentsPage() {
               key={d.id}
               className="flex items-center justify-between rounded border border-gray-800 bg-gray-900 px-4 py-3"
             >
-              <div className="flex flex-col">
+              <Link
+                href={`/documents/${d.id}`}
+                className="flex flex-col gap-1 flex-1 cursor-pointer hover:bg-gray-800/60 rounded p-2 -m-2"
+              >
                 <div className="flex items-center gap-2">
-                  <Link href={`/documents/${d.id}`} className="font-medium">
-                    {d.title}
-                  </Link>
+                  <span className="font-medium">{d.title}</span>
                   {d.status && (
                     <span className="opacity-70"> — {d.status}</span>
                   )}
                 </div>
 
-                <div className="mt-1 text-xs text-gray-400">
+                <div className="text-xs text-gray-400">
                   Uppladdad av{" "}
                   <span className="inline-flex items-center rounded-full border border-gray-700 bg-black/40 px-2 py-0.5 text-gray-200">
                     {meUserId !== null && meUserId === d.userId
@@ -181,7 +182,7 @@ export default function DocumentsPage() {
                       : d.uploaderEmail ?? `User #${d.userId}`}
                   </span>
                 </div>
-              </div>
+              </Link>
 
               {/* Delete endast för ägaren */}
               {meUserId !== null && meUserId === d.userId && (
