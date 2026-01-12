@@ -10,17 +10,25 @@ interface NavbarProps {
 }
 
 export default function Navbar({ user, onToggleSidebar }: NavbarProps) {
+  const displayName = user?.email.split("@")[0];
+
   return (
     <nav className="bg-black text-white border-b border-gray-700 p-4">
       <div className="flex justify-between items-center">
         <div className="flex gap-3 items-center">
           <ToggleSidebar onClick={onToggleSidebar} />
-          <div className="flex">
-            {user && <span className="font-medium">Välkommen</span>}
-          </div>
+          {user && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-300">Välkommen</span>
+              {/* badge */}
+              <span className="text-sm font-medium px-2.5 py-1 rounded-full border border-gray-700 bg-gray-900">
+                {displayName}
+              </span>
+            </div>
+          )}
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex items-center gap-4">
           {user ? (
             <LogoutButton />
           ) : (
