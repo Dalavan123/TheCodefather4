@@ -276,9 +276,13 @@ export default function DocumentsPage() {
                     )}
 
                     {isMine ? (
-                      <span className="text-gray-300">Uppladdad av dig</span>
+                      <span className="flex items-center gap-1 text-gray-300">
+                        <span className="text-gray-500">•</span>
+                        Uppladdad av dig
+                      </span>
                     ) : (
-                      <span className="inline-flex items-center rounded-full border border-gray-700 bg-black/40 px-2 py-0.5 text-gray-200">
+                      <span className="flex items-center gap-1 text-gray-400">
+                        <span className="text-gray-500">•</span>
                         {d.uploaderEmail ?? `User #${d.userId}`}
                       </span>
                     )}
