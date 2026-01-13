@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { isMyDocument } from "@/lib/docLogic";
 
 type Doc = {
   id: number;
@@ -246,7 +247,8 @@ export default function DocumentsPage() {
           <div>Inga dokument matchar din sökning.</div>
         ) : (
           docs.map(d => {
-            const isMine = meUserId !== null && meUserId === d.userId;
+            // OBS: använd alltid isMyDocument() – logiken är testad.
+            const isMine = isMyDocument(meUserId, d.userId);
 
             return (
               <div
