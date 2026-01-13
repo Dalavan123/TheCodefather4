@@ -1,11 +1,20 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAllDocuments } from "@/backend/services/document.service";
 
-export async function getDocumentsController() {
+export async function getDocumentsController(req?: NextRequest) {
   try {
-    const docs = await getAllDocuments();
+    // Om req finns -> läs query params (q, category, status)
+    const url = req ? new URL(req.url) : null;
+    const q = url?.searchParams.get("q");
+    const category = url?.searchParams.get("category");
+    const status = url?.searchParams.get("status");
+
+    const docs = await getAllDocuments({ q, category, status });
     return NextResponse.json(docs);
   } catch {
-    return NextResponse.json({ error: "Failed to fetch documents" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch documents" },
+      { status: 500 }
+    );
   }
 }

@@ -1,7 +1,31 @@
 import { prisma } from "@/lib/prisma";
 
-export async function getAllDocuments() {
+type GetDocumentsParams = {
+  q?: string | null;
+  category?: string | null;
+  status?: string | null;
+};
+
+export async function getAllDocuments(params?: GetDocumentsParams) {
+  const q = params?.q?.trim() ?? "";
+  const category = params?.category?.trim() ?? "";
+  const status = params?.status?.trim() ?? "";
+
   const docs = await prisma.document.findMany({
+    where: {
+      AND: [
+        q
+          ? {
+              OR: [
+                { title: { contains: q } },
+                { contentText: { contains: q } },
+              ],
+            }
+          : {},
+        category && category !== "all" ? { category } : {},
+        status && status !== "all" ? { status } : {},
+      ],
+    },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -18,8 +42,8 @@ export async function getAllDocuments() {
     },
   });
 
-  //enkelt för frontend
-  return docs.map(d => ({
+  // enkelt för frontend
+  return docs.map((d) => ({
     id: d.id,
     title: d.title,
     userId: d.userId,
