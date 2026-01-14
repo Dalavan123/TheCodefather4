@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { isMyDocument } from "@/lib/docLogic";
 
 type Doc = {
   id: number;
@@ -62,7 +63,9 @@ export default function DocumentsPage() {
   async function loadDocs() {
     setLoading(true);
     try {
-      const res = await fetch(`/api/documents${queryString}`, { method: "GET" });
+      const res = await fetch(`/api/documents${queryString}`, {
+        method: "GET",
+      });
       const data = await res.json();
       setDocs(Array.isArray(data) ? data : []);
     } finally {
@@ -144,7 +147,7 @@ export default function DocumentsPage() {
             type="file"
             accept=".txt,.md,text/plain,text/markdown"
             className="hidden"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            onChange={e => setFile(e.target.files?.[0] ?? null)}
           />
 
           <label
@@ -156,7 +159,7 @@ export default function DocumentsPage() {
 
           <select
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onChange={e => setCategory(e.target.value)}
             className="rounded border border-gray-700 bg-gray-900 px-3 py-2 text-sm"
           >
             <option value="meeting_notes">Mötesanteckningar</option>
@@ -193,14 +196,14 @@ export default function DocumentsPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <input
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={e => setQ(e.target.value)}
             placeholder="Sök i titel eller text..."
             className="w-full rounded border border-gray-700 bg-black px-3 py-2 text-sm"
           />
 
           <select
             value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
+            onChange={e => setFilterCategory(e.target.value)}
             className="rounded border border-gray-700 bg-black px-3 py-2 text-sm"
             title="Filter kategori"
           >
@@ -214,7 +217,7 @@ export default function DocumentsPage() {
 
           <select
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
+            onChange={e => setFilterStatus(e.target.value)}
             className="rounded border border-gray-700 bg-black px-3 py-2 text-sm"
             title="Filter status"
           >
@@ -243,50 +246,64 @@ export default function DocumentsPage() {
         ) : docs.length === 0 ? (
           <div>Inga dokument matchar din sökning.</div>
         ) : (
-          docs.map((d) => (
-            <div
-              key={d.id}
-              className="flex items-center justify-between rounded border border-gray-800 bg-gray-900 px-4 py-3"
-            >
-              <Link
-                href={`/documents/${d.id}`}
-                className="flex flex-col gap-1 flex-1 cursor-pointer hover:bg-gray-800/60 rounded p-2 -m-2"
+          docs.map(d => {
+            // OBS: använd alltid isMyDocument() – logiken är testad.
+            const isMine = isMyDocument(meUserId, d.userId);
+
+            return (
+              <div
+                key={d.id}
+                className={`flex items-center justify-between rounded border px-4 py-3 bg-gray-900 ${
+                  isMine
+                    ? "border-gray-800 border-l-4 border-l-cyan-500/60"
+                    : "border-gray-800"
+                }`}
               >
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{d.title}</span>
-                  {d.status && <span className="opacity-70"> — {d.status}</span>}
-                </div>
-
-                <div className="text-xs text-gray-400 flex flex-wrap gap-x-2 gap-y-1">
-                  {d.category ? (
-                    <span className="inline-flex items-center rounded-full border border-gray-700 bg-black/40 px-2 py-0.5 text-gray-200">
-                      {d.category}
-                    </span>
-                  ) : null}
-
-                  <span className="text-gray-400">
-                    Uppladdad av{" "}
-                    <span className="inline-flex items-center rounded-full border border-gray-700 bg-black/40 px-2 py-0.5 text-gray-200">
-                      {meUserId !== null && meUserId === d.userId
-                        ? "Du"
-                        : d.uploaderEmail ?? `User #${d.userId}`}
-                    </span>
-                  </span>
-                </div>
-              </Link>
-
-              {/* Delete endast för ägaren */}
-              {meUserId !== null && meUserId === d.userId && (
-                <button
-                  onClick={() => deleteDoc(d.id, d.title)}
-                  className="rounded border border-red-500 px-3 py-1 text-sm text-red-400 hover:bg-red-500 hover:text-black"
-                  title="Delete document"
+                <Link
+                  href={`/documents/${d.id}`}
+                  className="flex flex-col gap-1 flex-1 cursor-pointer hover:bg-gray-800/60 rounded p-2 -m-2"
                 >
-                  Delete
-                </button>
-              )}
-            </div>
-          ))
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{d.title}</span>
+                    {d.status && (
+                      <span className="opacity-70"> — {d.status}</span>
+                    )}
+                  </div>
+
+                  <div className="text-xs text-gray-400 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    {d.category && (
+                      <span className="uppercase tracking-wide text-gray-500">
+                        {d.category.replaceAll("_", " ")}
+                      </span>
+                    )}
+
+                    {isMine ? (
+                      <span className="flex items-center gap-1 text-gray-300">
+                        <span className="text-gray-500">•</span>
+                        Uppladdad av dig
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-gray-400">
+                        <span className="text-gray-500">•</span>
+                        {d.uploaderEmail ?? `User #${d.userId}`}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+
+                {/* Delete endast för ägaren */}
+                {isMine && (
+                  <button
+                    onClick={() => deleteDoc(d.id, d.title)}
+                    className="rounded border border-red-500 px-3 py-1 text-sm text-red-400 hover:bg-red-500 hover:text-black"
+                    title="Delete document"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
     </main>
