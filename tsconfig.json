@@ -32,5 +32,5 @@
     "**/*.mts",
     "prisma.config.ts.bak"
   ],
-  "exclude": ["node_modules", "tests"]
+  "exclude": ["node_modules"]
 }
