@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { isMyDocument } from "@/lib/docLogic";
 
 type Doc = {
@@ -33,7 +33,9 @@ export default function DocumentsPage() {
   const [loading, setLoading] = useState(true);
   const [meUserId, setMeUserId] = useState<number | null>(null);
 
-  // ✅ Sök + filter
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Sök + filter
   const [q, setQ] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -108,6 +110,12 @@ export default function DocumentsPage() {
 
     setMsg("Uploaded ✅");
     await loadDocs();
+
+    // ✅ NYTT – rensa efter lyckad upload
+    setFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   }
 
   async function deleteDoc(id: number, title: string) {
@@ -143,6 +151,7 @@ export default function DocumentsPage() {
       <div className="mx-auto max-w-2xl rounded border border-gray-800 p-4">
         <div className="flex items-center gap-3">
           <input
+            ref={fileInputRef}
             id="file"
             type="file"
             accept=".txt,.md,text/plain,text/markdown"
@@ -259,43 +268,60 @@ export default function DocumentsPage() {
                     : "border-gray-800"
                 }`}
               >
-                <Link
-                  href={`/documents/${d.id}`}
-                  className="flex flex-col gap-1 flex-1 cursor-pointer hover:bg-gray-800/60 rounded p-2 -m-2"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{d.title}</span>
-                    {d.status && (
-                      <span className="opacity-70"> — {d.status}</span>
-                    )}
-                  </div>
+                <div className="flex flex-col gap-1 flex-1">
+                  <Link
+                    href={`/documents/${d.id}`}
+                    className="cursor-pointer hover:bg-gray-800/60 rounded p-2 -m-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{d.title}</span>
+                      {d.status && (
+                        <span className="opacity-70"> — {d.status}</span>
+                      )}
+                    </div>
 
-                  <div className="text-xs text-gray-400 flex flex-wrap items-center gap-x-3 gap-y-1">
-                    {d.category && (
-                      <span className="uppercase tracking-wide text-gray-500">
-                        {d.category.replaceAll("_", " ")}
-                      </span>
-                    )}
+                    <div className="text-xs text-gray-400 flex flex-wrap items-center gap-x-3 gap-y-1">
+                      {d.category && (
+                        <span className="uppercase tracking-wide text-gray-500">
+                          {d.category.replaceAll("_", " ")}
+                        </span>
+                      )}
 
-                    {isMine ? (
-                      <span className="flex items-center gap-1 text-gray-300">
-                        <span className="text-gray-500">•</span>
-                        Uppladdad av dig
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-gray-400">
-                        <span className="text-gray-500">•</span>
-                        {d.uploaderEmail ?? `User #${d.userId}`}
-                      </span>
-                    )}
+                      {isMine ? (
+                        <span className="flex items-center gap-1 text-gray-300">
+                          <span className="text-gray-500">•</span>
+                          Uppladdad av dig
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-gray-400">
+                          <span className="text-gray-500">•</span>
+                          {d.uploaderEmail ?? `User #${d.userId}`}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                </div>
+
+                {d.createdAt && (
+                  <div
+                    title="Uppladdad"
+                    className="ml-4 text-xs text-gray-400 whitespace-nowrap tabular-nums self-start mt-1"
+                  >
+                    {new Date(d.createdAt).toLocaleString("sv-SE", {
+                      year: "numeric",
+                      month: "2-digit",
+                      day: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </div>
-                </Link>
+                )}
 
                 {/* Delete endast för ägaren */}
                 {isMine && (
                   <button
                     onClick={() => deleteDoc(d.id, d.title)}
-                    className="rounded border border-red-500 px-3 py-1 text-sm text-red-400 hover:bg-red-500 hover:text-black"
+                    className="ml-4 rounded border border-red-500 px-3 py-1 text-sm text-red-400 hover:bg-red-500 hover:text-black"
                     title="Delete document"
                   >
                     Delete
