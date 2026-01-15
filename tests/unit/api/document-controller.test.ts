@@ -4,6 +4,18 @@ import { getAllDocuments } from '@/backend/services/document.service';
 // Mock the service
 jest.mock('@/backend/services/document.service');
 
+const mockGetAllDocuments = getAllDocuments as jest.MockedFunction<typeof getAllDocuments>;
+
+type MockDocument = {
+  id: string;
+  title: string;
+  userId: string;
+  category: string | null;
+  status: string;
+  createdAt: Date;
+  uploaderEmail: string | null;
+};
+
 describe('Document Controller Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -11,7 +23,7 @@ describe('Document Controller Tests', () => {
 
   describe('getDocumentsController', () => {
     it('should return documents successfully', async () => {
-      const mockDocuments = [
+      const mockDocuments: MockDocument[] = [
         {
           id: '1',
           title: 'Test Doc 1',
@@ -32,12 +44,12 @@ describe('Document Controller Tests', () => {
         },
       ];
 
-      getAllDocuments.mockResolvedValue(mockDocuments);
+      mockGetAllDocuments.mockResolvedValue(mockDocuments as never);
 
       const response = await getDocumentsController();
       const data = await response.json();
 
-      expect(getAllDocuments).toHaveBeenCalled();
+      expect(mockGetAllDocuments).toHaveBeenCalled();
       expect(response.status).toBe(200);
       expect(data).toEqual(expect.arrayContaining([
         expect.objectContaining({
@@ -52,7 +64,7 @@ describe('Document Controller Tests', () => {
     });
 
     it('should return empty array when no documents exist', async () => {
-      getAllDocuments.mockResolvedValue([]);
+      mockGetAllDocuments.mockResolvedValue([] as never);
 
       const response = await getDocumentsController();
       const data = await response.json();
@@ -62,7 +74,7 @@ describe('Document Controller Tests', () => {
     });
 
     it('should handle service errors', async () => {
-      getAllDocuments.mockRejectedValue(new Error('Database error'));
+      mockGetAllDocuments.mockRejectedValue(new Error('Database error'));
 
       const response = await getDocumentsController();
       const data = await response.json();
@@ -72,7 +84,7 @@ describe('Document Controller Tests', () => {
     });
 
     it('should handle null values gracefully', async () => {
-      const mockDocuments = [
+      const mockDocuments: MockDocument[] = [
         {
           id: '1',
           title: 'Test Doc',
@@ -84,7 +96,7 @@ describe('Document Controller Tests', () => {
         },
       ];
 
-      getAllDocuments.mockResolvedValue(mockDocuments);
+      mockGetAllDocuments.mockResolvedValue(mockDocuments as never);
 
       const response = await getDocumentsController();
       const data = await response.json();
