@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllDocuments } from "@/backend/services/document.service";
+import { getSessionUser } from "@/backend/auth/session";
 
 export async function getDocumentsController(req?: NextRequest) {
   try {
@@ -8,8 +9,18 @@ export async function getDocumentsController(req?: NextRequest) {
     const q = url?.searchParams.get("q");
     const category = url?.searchParams.get("category");
     const status = url?.searchParams.get("status");
+    const mine = url?.searchParams.get("mine");
 
-    const docs = await getAllDocuments({ q, category, status });
+    const user = mine === "1" ? await getSessionUser() : null;
+
+    const docs = await getAllDocuments({
+      q,
+      category,
+      status,
+      mine,
+      userId: user?.id ?? null,
+    });
+
     return NextResponse.json(docs);
   } catch {
     return NextResponse.json(

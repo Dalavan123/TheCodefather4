@@ -39,6 +39,7 @@ export default function DocumentsPage() {
   const [q, setQ] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [onlyMine, setOnlyMine] = useState(false);
 
   const debouncedQ = useDebouncedValue(q, 300);
 
@@ -57,10 +58,11 @@ export default function DocumentsPage() {
     if (debouncedQ.trim()) params.set("q", debouncedQ.trim());
     if (filterCategory !== "all") params.set("category", filterCategory);
     if (filterStatus !== "all") params.set("status", filterStatus);
+    if (onlyMine) params.set("mine", "1");
 
     const s = params.toString();
     return s ? `?${s}` : "";
-  }, [debouncedQ, filterCategory, filterStatus]);
+  }, [debouncedQ, filterCategory, filterStatus, onlyMine]);
 
   async function loadDocs() {
     setLoading(true);
@@ -141,6 +143,7 @@ export default function DocumentsPage() {
     setQ("");
     setFilterCategory("all");
     setFilterStatus("all");
+    setOnlyMine(false);
   }
 
   return (
@@ -235,6 +238,15 @@ export default function DocumentsPage() {
             <option value="processing">processing</option>
             <option value="failed">failed</option>
           </select>
+
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={onlyMine}
+              onChange={e => setOnlyMine(e.target.checked)}
+            />
+            Mina dokument
+          </label>
 
           <button
             onClick={resetFilters}
