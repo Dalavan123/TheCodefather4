@@ -28,6 +28,11 @@ export default function Sidebar({ isOpen }: SidebarProps) {
           >
             Documents
           </Link>
+          <Link 
+          href="/conversations"
+          className="block hover:bg-gray-800 p-3 rounded"
+          >
+            Conversations</Link>
         </nav>
       </div>
     </aside>
