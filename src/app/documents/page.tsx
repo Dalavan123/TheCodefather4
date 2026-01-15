@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { isMyDocument } from "@/lib/docLogic";
 
 type Doc = {
   id: number;
@@ -13,6 +14,16 @@ type Doc = {
   createdAt?: string;
 };
 
+// liten debounce-hook
+function useDebouncedValue<T>(value: T, delayMs = 300) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(t);
+  }, [value, delayMs]);
+  return debounced;
+}
+
 export default function DocumentsPage() {
   const [file, setFile] = useState<File | null>(null);
   const [category, setCategory] = useState("meeting_notes");
@@ -22,16 +33,12 @@ export default function DocumentsPage() {
   const [loading, setLoading] = useState(true);
   const [meUserId, setMeUserId] = useState<number | null>(null);
 
-  async function loadDocs() {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/documents", { method: "GET" });
-      const data = await res.json();
-      setDocs(Array.isArray(data) ? data : []);
-    } finally {
-      setLoading(false);
-    }
-  }
+  // ✅ Sök + filter
+  const [q, setQ] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+
+  const debouncedQ = useDebouncedValue(q, 300);
 
   async function loadMe() {
     try {
@@ -43,10 +50,39 @@ export default function DocumentsPage() {
     }
   }
 
+  const queryString = useMemo(() => {
+    const params = new URLSearchParams();
+    if (debouncedQ.trim()) params.set("q", debouncedQ.trim());
+    if (filterCategory !== "all") params.set("category", filterCategory);
+    if (filterStatus !== "all") params.set("status", filterStatus);
+
+    const s = params.toString();
+    return s ? `?${s}` : "";
+  }, [debouncedQ, filterCategory, filterStatus]);
+
+  async function loadDocs() {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/documents${queryString}`, {
+        method: "GET",
+      });
+      const data = await res.json();
+      setDocs(Array.isArray(data) ? data : []);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // initial load
   useEffect(() => {
     loadMe();
-    loadDocs();
   }, []);
+
+  // ladda docs varje gång query/filter ändras
+  useEffect(() => {
+    loadDocs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryString]);
 
   async function upload() {
     if (!file) return;
@@ -91,6 +127,12 @@ export default function DocumentsPage() {
 
     setMsg(`🗑️ Deleted document ${id}`);
     await loadDocs();
+  }
+
+  function resetFilters() {
+    setQ("");
+    setFilterCategory("all");
+    setFilterStatus("all");
   }
 
   return (
@@ -149,6 +191,52 @@ export default function DocumentsPage() {
         {msg && <div className="mt-3 text-sm">{msg}</div>}
       </div>
 
+      {/* ✅ Sök + Filter */}
+      <div className="mx-auto mt-6 max-w-2xl rounded border border-gray-800 bg-gray-900 p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <input
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="Sök i titel eller text..."
+            className="w-full rounded border border-gray-700 bg-black px-3 py-2 text-sm"
+          />
+
+          <select
+            value={filterCategory}
+            onChange={e => setFilterCategory(e.target.value)}
+            className="rounded border border-gray-700 bg-black px-3 py-2 text-sm"
+            title="Filter kategori"
+          >
+            <option value="all">Alla kategorier</option>
+            <option value="meeting_notes">Mötesanteckningar</option>
+            <option value="reports">Rapporter</option>
+            <option value="docs">Dokumentation</option>
+            <option value="project">Projekt</option>
+            <option value="other">Övrigt</option>
+          </select>
+
+          <select
+            value={filterStatus}
+            onChange={e => setFilterStatus(e.target.value)}
+            className="rounded border border-gray-700 bg-black px-3 py-2 text-sm"
+            title="Filter status"
+          >
+            <option value="all">Alla status</option>
+            <option value="ready">ready</option>
+            <option value="processing">processing</option>
+            <option value="failed">failed</option>
+          </select>
+
+          <button
+            onClick={resetFilters}
+            className="rounded border border-gray-700 px-3 py-2 text-sm hover:bg-black"
+            title="Rensa filter"
+          >
+            Rensa
+          </button>
+        </div>
+      </div>
+
       {/* Lista dokument */}
       <h2 className="mt-10 mb-4 text-lg text-center">Alla dokument</h2>
 
@@ -156,46 +244,66 @@ export default function DocumentsPage() {
         {loading ? (
           <div>Loading...</div>
         ) : docs.length === 0 ? (
-          <div>Inga dokument ännu.</div>
+          <div>Inga dokument matchar din sökning.</div>
         ) : (
-          docs.map(d => (
-            <div
-              key={d.id}
-              className="flex items-center justify-between rounded border border-gray-800 bg-gray-900 px-4 py-3"
-            >
-              <Link
-                href={`/documents/${d.id}`}
-                className="flex flex-col gap-1 flex-1 cursor-pointer hover:bg-gray-800/60 rounded p-2 -m-2"
+          docs.map(d => {
+            // OBS: använd alltid isMyDocument() – logiken är testad.
+            const isMine = isMyDocument(meUserId, d.userId);
+
+            return (
+              <div
+                key={d.id}
+                className={`flex items-center justify-between rounded border px-4 py-3 bg-gray-900 ${
+                  isMine
+                    ? "border-gray-800 border-l-4 border-l-cyan-500/60"
+                    : "border-gray-800"
+                }`}
               >
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{d.title}</span>
-                  {d.status && (
-                    <span className="opacity-70"> — {d.status}</span>
-                  )}
-                </div>
-
-                <div className="text-xs text-gray-400">
-                  Uppladdad av{" "}
-                  <span className="inline-flex items-center rounded-full border border-gray-700 bg-black/40 px-2 py-0.5 text-gray-200">
-                    {meUserId !== null && meUserId === d.userId
-                      ? "Du"
-                      : d.uploaderEmail ?? `User #${d.userId}`}
-                  </span>
-                </div>
-              </Link>
-
-              {/* Delete endast för ägaren */}
-              {meUserId !== null && meUserId === d.userId && (
-                <button
-                  onClick={() => deleteDoc(d.id, d.title)}
-                  className="rounded border border-red-500 px-3 py-1 text-sm text-red-400 hover:bg-red-500 hover:text-black"
-                  title="Delete document"
+                <Link
+                  href={`/documents/${d.id}`}
+                  className="flex flex-col gap-1 flex-1 cursor-pointer hover:bg-gray-800/60 rounded p-2 -m-2"
                 >
-                  Delete
-                </button>
-              )}
-            </div>
-          ))
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{d.title}</span>
+                    {d.status && (
+                      <span className="opacity-70"> — {d.status}</span>
+                    )}
+                  </div>
+
+                  <div className="text-xs text-gray-400 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    {d.category && (
+                      <span className="uppercase tracking-wide text-gray-500">
+                        {d.category.replaceAll("_", " ")}
+                      </span>
+                    )}
+
+                    {isMine ? (
+                      <span className="flex items-center gap-1 text-gray-300">
+                        <span className="text-gray-500">•</span>
+                        Uppladdad av dig
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-gray-400">
+                        <span className="text-gray-500">•</span>
+                        {d.uploaderEmail ?? `User #${d.userId}`}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+
+                {/* Delete endast för ägaren */}
+                {isMine && (
+                  <button
+                    onClick={() => deleteDoc(d.id, d.title)}
+                    className="rounded border border-red-500 px-3 py-1 text-sm text-red-400 hover:bg-red-500 hover:text-black"
+                    title="Delete document"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
     </main>
