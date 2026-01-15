@@ -47,6 +47,13 @@ describe('Document Service Tests', () => {
       const result = await getAllDocuments();
 
       expect(prisma.document.findMany).toHaveBeenCalledWith({
+        where: {
+          AND: [
+            {},
+            {},
+            {},
+          ],
+        },
         orderBy: { createdAt: 'desc' },
         select: {
           id: true,
