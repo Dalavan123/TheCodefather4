@@ -69,6 +69,7 @@ export default function DocumentsPage() {
     try {
       const res = await fetch(`/api/documents${queryString}`, {
         method: "GET",
+        cache: "no-store",
       });
       const data = await res.json();
       setDocs(Array.isArray(data) ? data : []);
@@ -145,6 +146,12 @@ export default function DocumentsPage() {
     setFilterStatus("all");
     setOnlyMine(false);
   }
+
+  const sortedDocs = [...docs].sort(
+    (a, b) =>
+      new Date(b.createdAt ?? 0).getTime() -
+      new Date(a.createdAt ?? 0).getTime()
+  );
 
   return (
     <main className="min-h-screen bg-black text-white p-6">
@@ -239,7 +246,7 @@ export default function DocumentsPage() {
             <option value="failed">failed</option>
           </select>
 
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2 text-sm whitespace-nowrap">
             <input
               type="checkbox"
               checked={onlyMine}
@@ -264,10 +271,10 @@ export default function DocumentsPage() {
       <div className="mx-auto max-w-2xl space-y-3">
         {loading ? (
           <div>Loading...</div>
-        ) : docs.length === 0 ? (
+        ) : sortedDocs.length === 0 ? (
           <div>Inga dokument matchar din sökning.</div>
         ) : (
-          docs.map(d => {
+          sortedDocs.map(d => {
             // OBS: använd alltid isMyDocument() – logiken är testad.
             const isMine = isMyDocument(meUserId, d.userId);
 
