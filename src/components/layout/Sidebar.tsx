@@ -9,8 +9,8 @@ interface SidebarProps {
 export default function Sidebar({ isOpen }: SidebarProps) {
   return (
     <aside
-      className={`bg-black border-r-1 border-gray-700 text-white transition-all duration-300 ${
-        isOpen ? "w-[30%] min-w-[250px]" : "w-0"
+      className={`bg-black border-r border-gray-700 text-white transition-all duration-300 ${
+        isOpen ? "w-60" : "w-0"
       } overflow-hidden`}
     >
       <div className="p-4">
@@ -28,11 +28,12 @@ export default function Sidebar({ isOpen }: SidebarProps) {
           >
             Documents
           </Link>
-          <Link 
-          href="/conversations"
-          className="block hover:bg-gray-800 p-3 rounded"
+          <Link
+            href="/conversations"
+            className="block hover:bg-gray-800 p-3 rounded"
           >
-            Conversations</Link>
+            Conversations
+          </Link>
         </nav>
       </div>
     </aside>
