@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import ToggleSidebar from "@/components/ToggleSidebar";
@@ -11,7 +12,32 @@ interface NavbarProps {
 }
 
 export default function Navbar({ user, onToggleSidebar }: NavbarProps) {
-  const displayName = user?.email.split("@")[0];
+  const displayName = user?.email.split("@")[0] ?? "Konto";
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  // Stäng dropdown vid klick utanför + Escape
+  useEffect(() => {
+    if (!open) return;
+
+    const onMouseDown = (e: MouseEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+
+    document.addEventListener("mousedown", onMouseDown);
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", onMouseDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
 
   return (
     <nav className="bg-black text-white border-b border-gray-700 p-4">
@@ -20,7 +46,6 @@ export default function Navbar({ user, onToggleSidebar }: NavbarProps) {
         <div className="flex gap-4 items-center">
           <ToggleSidebar onClick={onToggleSidebar} />
 
-          {/* LOGO + TITLE */}
           <Link href="/" className="flex items-center gap-3 hover:opacity-90">
             <Image
               src="/logo.png"
@@ -34,35 +59,41 @@ export default function Navbar({ user, onToggleSidebar }: NavbarProps) {
               The Codefathers
             </span>
           </Link>
-
-          {/* USER INFO */}
-          {user && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-300 hidden md:block">
-                Välkommen
-              </span>
-
-              {/* badge */}
-              <span className="text-sm font-medium px-2.5 py-1 rounded-full border border-gray-700 bg-gray-900 text-gray-200">
-                {displayName ?? user.email}
-              </span>
-            </div>
-          )}
         </div>
 
         {/* RIGHT */}
-        <div className="flex items-center gap-4">
-          {user ? (
-            <LogoutButton />
-          ) : (
-            <>
-              <Link href="/login" className="hover:underline">
-                Login
-              </Link>
-              <Link href="/register" className="hover:underline">
-                Register
-              </Link>
-            </>
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setOpen(v => !v)}
+            className="px-3 py-1 rounded-full bg-gray-800 hover:bg-gray-700 text-sm flex items-center gap-2"
+            aria-haspopup="menu"
+            aria-expanded={open}
+          >
+            {displayName} <span className="opacity-70">▾</span>
+          </button>
+
+          {open && (
+            <div
+              className="
+                absolute right-0 mt-2 w-44
+                rounded-md border border-gray-600
+                bg-gray-800 shadow-lg
+                overflow-hidden
+              "
+              role="menu"
+            >
+              {user ? (
+                <LogoutButton className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-700" />
+              ) : (
+                <Link
+                  href="/login"
+                  onClick={() => setOpen(false)}
+                  className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-700"
+                >
+                  Logga in
+                </Link>
+              )}
+            </div>
           )}
         </div>
       </div>

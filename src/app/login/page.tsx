@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
+
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
@@ -12,35 +14,64 @@ import { validators } from "@/lib/validation";
 export default function LoginPage() {
   const router = useRouter();
 
-  const { fields, isSubmitting, submitError, isValid, handleChange, handleBlur, handleSubmit } =
-    useForm({
-      initialValues: {
-        email: "",
-        password: "",
-      },
-      validators: {
-        email: validators.email,
-        password: validators.password,
-      },
-      onSubmit: async (values) => {
-        const res = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: values.email.trim().toLowerCase(),
-            password: values.password,
-          }),
-        });
+  useEffect(() => {
+    let alive = true;
 
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data?.error || "Fel e-postadress eller lösenord");
+    (async () => {
+      try {
+        const res = await fetch("/api/auth/me", { cache: "no-store" });
+        const data = await res.json();
+        if (!alive) return;
+
+        if (data?.user?.id) {
+          router.replace("/documents");
         }
+      } catch {
+        // om det failar: gör inget, visa login som vanligt
+      }
+    })();
 
-        router.push("/documents");
-        router.refresh();
-      },
-    });
+    return () => {
+      alive = false;
+    };
+  }, [router]);
+
+  const {
+    fields,
+    isSubmitting,
+    submitError,
+    isValid,
+    handleChange,
+    handleBlur,
+    handleSubmit,
+  } = useForm({
+    initialValues: {
+      email: "",
+      password: "",
+    },
+    validators: {
+      email: validators.email,
+      password: validators.password,
+    },
+    onSubmit: async values => {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: values.email.trim().toLowerCase(),
+          password: values.password,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || "Fel e-postadress eller lösenord");
+      }
+
+      router.push("/documents");
+      router.refresh();
+    },
+  });
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-gradient-to-b from-black to-slate-900 text-white p-6">
@@ -64,7 +95,7 @@ export default function LoginPage() {
             value={fields.email.value}
             error={fields.email.error}
             touched={fields.email.touched}
-            onChange={(e) => handleChange("email", e.target.value)}
+            onChange={e => handleChange("email", e.target.value)}
             onBlur={() => handleBlur("email")}
           />
 
@@ -77,7 +108,7 @@ export default function LoginPage() {
             value={fields.password.value}
             error={fields.password.error}
             touched={fields.password.touched}
-            onChange={(e) => handleChange("password", e.target.value)}
+            onChange={e => handleChange("password", e.target.value)}
             onBlur={() => handleBlur("password")}
           />
 

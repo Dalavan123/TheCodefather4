@@ -39,6 +39,7 @@ export default function DocumentsPage() {
   const [q, setQ] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [onlyMine, setOnlyMine] = useState(false);
 
   const debouncedQ = useDebouncedValue(q, 300);
 
@@ -57,16 +58,18 @@ export default function DocumentsPage() {
     if (debouncedQ.trim()) params.set("q", debouncedQ.trim());
     if (filterCategory !== "all") params.set("category", filterCategory);
     if (filterStatus !== "all") params.set("status", filterStatus);
+    if (onlyMine) params.set("mine", "1");
 
     const s = params.toString();
     return s ? `?${s}` : "";
-  }, [debouncedQ, filterCategory, filterStatus]);
+  }, [debouncedQ, filterCategory, filterStatus, onlyMine]);
 
   async function loadDocs() {
     setLoading(true);
     try {
       const res = await fetch(`/api/documents${queryString}`, {
         method: "GET",
+        cache: "no-store",
       });
       const data = await res.json();
       setDocs(Array.isArray(data) ? data : []);
@@ -141,7 +144,14 @@ export default function DocumentsPage() {
     setQ("");
     setFilterCategory("all");
     setFilterStatus("all");
+    setOnlyMine(false);
   }
+
+  const sortedDocs = [...docs].sort(
+    (a, b) =>
+      new Date(b.createdAt ?? 0).getTime() -
+      new Date(a.createdAt ?? 0).getTime()
+  );
 
   return (
     <main className="min-h-screen bg-black text-white p-6">
@@ -236,6 +246,15 @@ export default function DocumentsPage() {
             <option value="failed">failed</option>
           </select>
 
+          <label className="flex items-center gap-2 text-sm whitespace-nowrap">
+            <input
+              type="checkbox"
+              checked={onlyMine}
+              onChange={e => setOnlyMine(e.target.checked)}
+            />
+            Mina dokument
+          </label>
+
           <button
             onClick={resetFilters}
             className="rounded border border-gray-700 px-3 py-2 text-sm hover:bg-black"
@@ -252,10 +271,10 @@ export default function DocumentsPage() {
       <div className="mx-auto max-w-2xl space-y-3">
         {loading ? (
           <div>Loading...</div>
-        ) : docs.length === 0 ? (
+        ) : sortedDocs.length === 0 ? (
           <div>Inga dokument matchar din sökning.</div>
         ) : (
-          docs.map(d => {
+          sortedDocs.map(d => {
             // OBS: använd alltid isMyDocument() – logiken är testad.
             const isMine = isMyDocument(meUserId, d.userId);
 

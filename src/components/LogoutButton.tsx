@@ -1,6 +1,10 @@
 "use client";
 
-export default function LogoutButton() {
+interface LogoutButtonProps {
+  className?: string;
+}
+
+export default function LogoutButton({ className }: LogoutButtonProps) {
   const handleLogout = async () => {
     const response = await fetch("/api/auth/logout", {
       method: "POST",
@@ -12,7 +16,7 @@ export default function LogoutButton() {
   };
 
   return (
-    <button onClick={handleLogout} className="hover:underline">
+    <button onClick={handleLogout} className={className ?? "hover:underline"}>
       Logout
     </button>
   );

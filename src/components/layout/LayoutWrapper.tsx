@@ -10,7 +10,7 @@ interface LayoutWrapperProps {
 }
 
 export default function LayoutWrapper({ user, children }: LayoutWrapperProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
     <div className="flex h-screen overflow-hidden">
