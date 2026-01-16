@@ -8,14 +8,15 @@ datasource db {
 }
 
 model User {
-  id           Int            @id @default(autoincrement())
-  email        String         @unique
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
   passwordHash String
-  createdAt    DateTime       @default(now())
+  createdAt    DateTime @default(now())
 
   documents     Document[]
   conversations Conversation[]
-  sessions      Session[] 
+  sessions      Session[]
+  comments      DocumentComment[]
 }
 
 model Document {
@@ -28,8 +29,9 @@ model Document {
   status       String   @default("ready")
   createdAt    DateTime @default(now())
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  chunks Chunk[]
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chunks   Chunk[]
+  comments DocumentComment[]
 }
 
 model Chunk {
@@ -39,7 +41,7 @@ model Chunk {
   content    String
   createdAt  DateTime @default(now())
 
-  document  Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  document  Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
   embedding Embedding?
 
   @@unique([documentId, chunkIndex])
@@ -77,6 +79,7 @@ model Message {
 
   @@index([conversationId])
 }
+
 model Session {
   token     String   @id
   userId    Int
@@ -87,6 +90,7 @@ model Session {
 
   @@index([userId])
 }
+
 model DocumentComment {
   id         Int      @id @default(autoincrement())
   documentId Int
@@ -94,8 +98,8 @@ model DocumentComment {
   content    String
   createdAt  DateTime @default(now())
 
-  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([documentId])
   @@index([userId])
