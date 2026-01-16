@@ -35,31 +35,53 @@ export default function ConversationPage() {
   }, [id]);
 
   async function send() {
-    if (!input.trim()) return;
+  if (!input.trim()) return;
 
-    const text = input.trim();
-    setInput("");
+  const text = input.trim();
+  setInput("");
 
-    // Optimistic UI
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        role: "user",
-        content: text,
-        createdAt: new Date().toISOString(),
-      },
-    ]);
+  // Optimistic UI: lägg in user direkt
+  const tempUserId = Date.now();
+  const tempAssistantId = Date.now() + 1;
 
-    await fetch(`/api/conversations/${id}/messages`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: text }),
-    });
+  setMessages((prev) => [
+    ...prev,
+    {
+      id: tempUserId,
+      role: "user",
+      content: text,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: tempAssistantId,
+      role: "assistant",
+      content: "Tänker... 🤖",
+      createdAt: new Date().toISOString(),
+    },
+  ]);
 
-    // hämta "riktiga" listan igen
-    await loadMessages();
+  const res = await fetch(`/api/conversations/${id}/messages`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content: text }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    // Om det gick fel: ta bort placeholder och visa error
+    setMessages((prev) => prev.filter((m) => m.id !== tempAssistantId));
+    return;
   }
+
+  // Ersätt placeholder med DB-svaret
+  setMessages((prev) =>
+    prev.map((m) => {
+      if (m.id === tempAssistantId) return data.assistantMessage;
+      return m;
+    })
+  );
+}
 
   return (
     <main className="min-h-screen bg-black text-white p-6">
