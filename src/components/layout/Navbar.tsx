@@ -82,9 +82,6 @@ export default function Navbar({ user, onToggleSidebar }: NavbarProps) {
               "
               role="menu"
             >
-              {/* liten pil */}
-              <div className="absolute -top-2 right-4 h-4 w-4 rotate-45 bg-gray-800 border-l border-t border-gray-600" />
-
               {user ? (
                 <LogoutButton className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-700" />
               ) : (
