@@ -11,11 +11,11 @@ export async function GET(
 
   const { id } = await params;
   const conversationId = Number(id);
+
   if (!Number.isFinite(conversationId)) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
 
-  // säkerställ att convo tillhör användaren
   const convo = await prisma.conversation.findUnique({
     where: { id: conversationId },
     select: { id: true, userId: true },
@@ -49,6 +49,7 @@ export async function POST(
 
   const { id } = await params;
   const conversationId = Number(id);
+
   if (!Number.isFinite(conversationId)) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
@@ -60,7 +61,7 @@ export async function POST(
     return NextResponse.json({ error: "Message is empty" }, { status: 400 });
   }
 
-  // säkerställ ägande
+
   const convo = await prisma.conversation.findUnique({
     where: { id: conversationId },
     select: { id: true, userId: true },
@@ -71,7 +72,7 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const message = await prisma.message.create({
+  const userMessage = await prisma.message.create({
     data: {
       conversationId,
       role: "user",
@@ -85,5 +86,22 @@ export async function POST(
     },
   });
 
-  return NextResponse.json(message, { status: 201 });
+  const assistantMessage = await prisma.message.create({
+    data: {
+      conversationId,
+      role: "assistant",
+      content: `✅ Jag har tagit emot din fråga:\n\n"${content}"\n\n(Snart kommer AI-svar här.)`,
+    },
+    select: {
+      id: true,
+      role: true,
+      content: true,
+      createdAt: true,
+    },
+  });
+
+  return NextResponse.json(
+    { ok: true, userMessage, assistantMessage },
+    { status: 201 }
+  );
 }
