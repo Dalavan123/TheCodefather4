@@ -87,3 +87,16 @@ model Session {
 
   @@index([userId])
 }
+model DocumentComment {
+  id         Int      @id @default(autoincrement())
+  documentId Int
+  userId     Int
+  content    String
+  createdAt  DateTime @default(now())
+
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@index([userId])
+}
