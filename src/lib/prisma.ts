@@ -4,7 +4,12 @@ import { createClient } from "@libsql/client";
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
-// إنشاء محول Prisma LibSQL بدون إنشاء عميل libsql يدوياً
+// Debug: Kontrollera miljövariabler
+console.log("[Prisma] TURSO_DATABASE_URL finns:", !!process.env.TURSO_DATABASE_URL);
+console.log("[Prisma] TURSO_AUTH_TOKEN finns:", !!process.env.TURSO_AUTH_TOKEN);
+console.log("[Prisma] NODE_ENV:", process.env.NODE_ENV);
+
+// Skapa Prisma LibSQL adapter
 const adapter = new PrismaLibSql({
   url: process.env.TURSO_DATABASE_URL!,
   authToken: process.env.TURSO_AUTH_TOKEN!,
