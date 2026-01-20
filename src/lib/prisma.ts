@@ -4,48 +4,27 @@ import { createClient } from "@libsql/client";
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
-// Tvinga användning av Turso i production
-const isProduction = process.env.NODE_ENV === "production";
-
-console.log("[Prisma] Environment:", process.env.NODE_ENV);
-console.log("[Prisma] TURSO_DATABASE_URL finns:", !!process.env.TURSO_DATABASE_URL);
-console.log("[Prisma] TURSO_AUTH_TOKEN finns:", !!process.env.TURSO_AUTH_TOKEN);
-
-let prismaInstance: PrismaClient;
-
-if (isProduction && process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN) {
-  // I production, använd ALLTID Turso
-  console.log("[Prisma] Ansluter till Turso (production)...");
-  const adapter = new PrismaLibSql({
-    url: process.env.TURSO_DATABASE_URL,
-    authToken: process.env.TURSO_AUTH_TOKEN,
-  });
+function createPrismaClient(): PrismaClient {
+  // ENDAST på Vercel (NODE_ENV=production): använd Turso
+  const isProduction = process.env.NODE_ENV === "production";
   
-  prismaInstance = new PrismaClient({
-    adapter,
-    log: ["error", "warn"],
-  });
-} else if (process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN) {
-  // Development med Turso
-  console.log("[Prisma] Ansluter till Turso (development)...");
-  const adapter = new PrismaLibSql({
-    url: process.env.TURSO_DATABASE_URL,
-    authToken: process.env.TURSO_AUTH_TOKEN,
-  });
-  
-  prismaInstance = new PrismaClient({
-    adapter,
-    log: ["error", "warn"],
-  });
-} else {
-  // Lokal databas för development
-  console.log("[Prisma] Använder lokal databas");
-  prismaInstance = new PrismaClient({
-    log: ["error", "warn"],
-  });
+  if (isProduction) {
+    const tursoUrl = process.env.TURSO_DATABASE_URL;
+    const tursoToken = process.env.TURSO_AUTH_TOKEN;
+
+    if (tursoUrl && tursoToken) {
+      const libsql = createClient({ url: tursoUrl, authToken: tursoToken });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const adapter = new PrismaLibSql(libsql as any);
+      return new PrismaClient({ adapter, log: ["error"] });
+    }
+  }
+
+  // Lokalt: använd SQLite
+  return new PrismaClient({ log: ["error", "warn"] });
 }
 
-export const prisma = globalForPrisma.prisma ?? prismaInstance;
+export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
