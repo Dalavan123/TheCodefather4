@@ -179,27 +179,6 @@ export default function DocumentsPage() {
     setFile(f);
   }
 
-  function onDragOver(e: React.DragEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  }
-
-  function onDragLeave(e: React.DragEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  }
-
-  function onDrop(e: React.DragEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-
-    const f = e.dataTransfer.files?.[0] ?? null;
-    setPickedFile(f);
-  }
-
   return (
     <main className="min-h-screen bg-black text-white p-6">
       <h1 className="text-2xl mb-6 text-center">Documents</h1>
@@ -263,40 +242,50 @@ export default function DocumentsPage() {
             {file ? file.name : "Dra & släpp dokument"}
           </div>
           <div className="mt-1 text-xs opacity-70">
-            eller klicka för att välja filer (.txt, .md)
+            {file
+              ? "Klicka för att byta fil"
+              : "eller klicka för att välja filer (.txt, .md)"}
           </div>
         </div>
 
         {/* Rad 2: Kategori + knapp under (som målbild-ish) */}
-        <div className="mt-4 flex items-end justify-end gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs uppercase tracking-wide text-gray-400">
-              Kategori
-            </label>
-            <select
-              value={category}
-              onChange={e => setCategory(e.target.value)}
-              className="rounded border border-gray-700 bg-gray-900 px-3 py-2 text-sm"
-            >
-              <option value="meeting_notes">Mötesanteckningar</option>
-              <option value="reports">Rapporter</option>
-              <option value="docs">Dokumentation</option>
-              <option value="project">Projektbeskrivningar</option>
-              <option value="other">Övrigt</option>
-            </select>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          {/* Vänster: hint */}
+          <div className="text-xs text-gray-500">
+            Välj kategori och ladda upp
           </div>
 
-          <button
-            onClick={upload}
-            disabled={meUserId === null || !file}
-            className={`rounded px-4 py-2 text-sm ${
-              meUserId === null || !file
-                ? "bg-gray-700 text-gray-300 cursor-not-allowed"
-                : "bg-cyan-500 text-black"
-            }`}
-          >
-            Upload
-          </button>
+          {/* Höger: kontroller */}
+          <div className="flex items-end gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-medium text-gray-400">
+                Kategori
+              </label>
+              <select
+                value={category}
+                onChange={e => setCategory(e.target.value)}
+                className="rounded border border-gray-700 bg-gray-900 px-3 py-2 text-sm"
+              >
+                <option value="meeting_notes">Mötesanteckningar</option>
+                <option value="reports">Rapporter</option>
+                <option value="docs">Dokumentation</option>
+                <option value="project">Projektbeskrivningar</option>
+                <option value="other">Övrigt</option>
+              </select>
+            </div>
+
+            <button
+              onClick={upload}
+              disabled={meUserId === null || !file}
+              className={`rounded-md px-5 py-2 text-sm font-semibold ${
+                meUserId === null || !file
+                  ? "bg-gray-700 text-gray-300 cursor-not-allowed"
+                  : "bg-cyan-500 text-black"
+              }`}
+            >
+              Upload
+            </button>
+          </div>
         </div>
 
         {meUserId === null && (
@@ -305,7 +294,12 @@ export default function DocumentsPage() {
           </div>
         )}
 
-        {msg && <div className="mt-3 text-sm">{msg}</div>}
+        {msg === "Uploaded ✅" && (
+          <div className="mt-3 text-xs text-green-400">✓ Uppladdat</div>
+        )}
+        {msg && msg !== "Uploaded ✅" && (
+          <div className="mt-3 text-sm">{msg}</div>
+        )}
       </div>
 
       {/* ✅ Sök + Filter */}
