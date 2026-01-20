@@ -6,16 +6,28 @@ const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 // Tvinga användning av Turso i production
 const isProduction = process.env.NODE_ENV === "production";
-const useTurso = isProduction || process.env.TURSO_DATABASE_URL;
 
 console.log("[Prisma] Environment:", process.env.NODE_ENV);
-console.log("[Prisma] Använder Turso:", useTurso);
+console.log("[Prisma] TURSO_DATABASE_URL finns:", !!process.env.TURSO_DATABASE_URL);
+console.log("[Prisma] TURSO_AUTH_TOKEN finns:", !!process.env.TURSO_AUTH_TOKEN);
 
 let prismaInstance: PrismaClient;
 
-if (useTurso && process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN) {
-  // Använd Turso med adapter
-  console.log("[Prisma] Ansluter till Turso...");
+if (isProduction && process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN) {
+  // I production, använd ALLTID Turso
+  console.log("[Prisma] Ansluter till Turso (production)...");
+  const adapter = new PrismaLibSql({
+    url: process.env.TURSO_DATABASE_URL,
+    authToken: process.env.TURSO_AUTH_TOKEN,
+  });
+  
+  prismaInstance = new PrismaClient({
+    adapter,
+    log: ["error", "warn"],
+  });
+} else if (process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN) {
+  // Development med Turso
+  console.log("[Prisma] Ansluter till Turso (development)...");
   const adapter = new PrismaLibSql({
     url: process.env.TURSO_DATABASE_URL,
     authToken: process.env.TURSO_AUTH_TOKEN,
@@ -26,7 +38,7 @@ if (useTurso && process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN) 
     log: ["error", "warn"],
   });
 } else {
-  // Använd lokal databas för development
+  // Lokal databas för development
   console.log("[Prisma] Använder lokal databas");
   prismaInstance = new PrismaClient({
     log: ["error", "warn"],
