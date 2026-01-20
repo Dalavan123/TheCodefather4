@@ -35,6 +35,9 @@ export default function DocumentsPage() {
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Drag and drop
+  const [isDragging, setIsDragging] = useState(false);
+
   // Sök + filter
   const [q, setQ] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
@@ -92,6 +95,7 @@ export default function DocumentsPage() {
   async function upload() {
     if (!file) return;
 
+    setMsg(""); // rensa gammal status
     setMsg("Uploading...");
 
     const fd = new FormData();
@@ -113,6 +117,10 @@ export default function DocumentsPage() {
 
     setMsg("Uploaded ✅");
     await loadDocs();
+
+    setTimeout(() => {
+      setMsg("");
+    }, 2500);
 
     // ✅ NYTT – rensa efter lyckad upload
     setFile(null);
@@ -153,46 +161,136 @@ export default function DocumentsPage() {
       new Date(a.createdAt ?? 0).getTime()
   );
 
+  // Drag and drop
+  function isAllowedFile(f: File) {
+    const okExt = /\.(txt|md)$/i.test(f.name);
+    const okMime =
+      f.type === "text/plain" || f.type === "text/markdown" || f.type === ""; // vissa .md kan komma som tom mime
+    return okExt || okMime;
+  }
+
+  function setPickedFile(f: File | null) {
+    if (!f) return;
+    if (!isAllowedFile(f)) {
+      setMsg("Endast .txt eller .md stöds");
+      return;
+    }
+    setMsg("");
+    setFile(f);
+  }
+
+  function onDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }
+
+  function onDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }
+
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const f = e.dataTransfer.files?.[0] ?? null;
+    setPickedFile(f);
+  }
+
   return (
     <main className="min-h-screen bg-black text-white p-6">
       <h1 className="text-2xl mb-6 text-center">Documents</h1>
 
       {/* Upload */}
       <div className="mx-auto max-w-2xl rounded border border-gray-800 p-4">
-        <div className="flex items-center gap-3">
-          <input
-            ref={fileInputRef}
-            id="file"
-            type="file"
-            accept=".txt,.md,text/plain,text/markdown"
-            className="hidden"
-            onChange={e => setFile(e.target.files?.[0] ?? null)}
-          />
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          id="file"
+          type="file"
+          accept=".txt,.md,text/plain,text/markdown"
+          className="hidden"
+          onChange={e => setPickedFile(e.target.files?.[0] ?? null)}
+        />
 
-          <label
-            htmlFor="file"
-            className="cursor-pointer rounded border border-gray-700 bg-gray-900 px-4 py-2 text-sm"
-          >
-            {file ? file.name : "Välj fil"}
-          </label>
+        {/* Dropzone (rad 1) */}
+        <div
+          className={`rounded-lg border border-dashed px-6 py-8 text-center text-sm
+      ${meUserId === null ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}
+      ${
+        isDragging
+          ? "border-cyan-500 bg-cyan-500/10"
+          : "border-gray-700 bg-gray-900/70"
+      }
+    `}
+          onClick={() => {
+            if (meUserId === null) return;
+            fileInputRef.current?.click();
+          }}
+          onDragOver={e => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (meUserId === null) return;
+            setIsDragging(true);
+          }}
+          onDragLeave={e => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDragging(false);
+          }}
+          onDrop={e => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDragging(false);
+            if (meUserId === null) return;
 
-          <select
-            value={category}
-            onChange={e => setCategory(e.target.value)}
-            className="rounded border border-gray-700 bg-gray-900 px-3 py-2 text-sm"
-          >
-            <option value="meeting_notes">Mötesanteckningar</option>
-            <option value="reports">Rapporter</option>
-            <option value="docs">Dokumentation</option>
-            <option value="project">Projektbeskrivningar</option>
-            <option value="other">Övrigt</option>
-          </select>
+            const f = e.dataTransfer.files?.[0] ?? null;
+            setPickedFile(f);
+          }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={e => {
+            if (meUserId === null) return;
+            if (e.key === "Enter" || e.key === " ")
+              fileInputRef.current?.click();
+          }}
+          title="Dra och släpp en fil här, eller klicka för att välja"
+        >
+          <div className="opacity-90 font-medium">
+            {file ? file.name : "Dra & släpp dokument"}
+          </div>
+          <div className="mt-1 text-xs opacity-70">
+            eller klicka för att välja filer (.txt, .md)
+          </div>
+        </div>
+
+        {/* Rad 2: Kategori + knapp under (som målbild-ish) */}
+        <div className="mt-4 flex items-end justify-end gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs uppercase tracking-wide text-gray-400">
+              Kategori
+            </label>
+            <select
+              value={category}
+              onChange={e => setCategory(e.target.value)}
+              className="rounded border border-gray-700 bg-gray-900 px-3 py-2 text-sm"
+            >
+              <option value="meeting_notes">Mötesanteckningar</option>
+              <option value="reports">Rapporter</option>
+              <option value="docs">Dokumentation</option>
+              <option value="project">Projektbeskrivningar</option>
+              <option value="other">Övrigt</option>
+            </select>
+          </div>
 
           <button
             onClick={upload}
-            disabled={meUserId === null}
+            disabled={meUserId === null || !file}
             className={`rounded px-4 py-2 text-sm ${
-              meUserId === null
+              meUserId === null || !file
                 ? "bg-gray-700 text-gray-300 cursor-not-allowed"
                 : "bg-cyan-500 text-black"
             }`}
