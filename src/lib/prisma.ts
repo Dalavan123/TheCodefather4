@@ -14,6 +14,7 @@ function createPrismaClient(): PrismaClient {
 
     if (tursoUrl && tursoToken) {
       const libsql = createClient({ url: tursoUrl, authToken: tursoToken });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const adapter = new PrismaLibSql(libsql as any);
       return new PrismaClient({ adapter, log: ["error"] });
     }

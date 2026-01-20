@@ -32,6 +32,7 @@ export default function ConversationPage() {
   useEffect(() => {
     if (!Number.isFinite(id)) return;
     loadMessages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   async function send() {
