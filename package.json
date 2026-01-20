@@ -15,7 +15,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
-    "postinstall": "prisma generate",
+    "postinstall": "cross-env DATABASE_URL=file:./dev.db prisma generate",
     "prisma:generate": "prisma generate"
   },
   "dependencies": {
