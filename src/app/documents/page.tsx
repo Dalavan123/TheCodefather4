@@ -35,6 +35,18 @@ export default function DocumentsPage() {
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  const CATEGORY_OPTIONS = [
+    { value: "meeting_notes", label: "Mötesanteckningar" },
+    { value: "reports", label: "Rapporter" },
+    { value: "docs", label: "Dokumentation" },
+    { value: "project", label: "Projektbeskrivningar" },
+    { value: "other", label: "Övrigt" },
+  ] as const;
+
+  const CATEGORY_LABEL: Record<string, string> = Object.fromEntries(
+    CATEGORY_OPTIONS.map(o => [o.value, o.label])
+  ) as Record<string, string>;
+
   // Drag and drop
   const [isDragging, setIsDragging] = useState(false);
 
@@ -45,6 +57,16 @@ export default function DocumentsPage() {
   const [onlyMine, setOnlyMine] = useState(false);
 
   const debouncedQ = useDebouncedValue(q, 300);
+
+  const STATUS_OPTIONS = [
+    { value: "ready", label: "Klar" },
+    { value: "processing", label: "Bearbetar" },
+    { value: "failed", label: "Misslyckades" },
+  ] as const;
+
+  const STATUS_LABEL: Record<string, string> = Object.fromEntries(
+    STATUS_OPTIONS.map(o => [o.value, o.label])
+  ) as Record<string, string>;
 
   async function loadMe() {
     try {
@@ -96,7 +118,7 @@ export default function DocumentsPage() {
     if (!file) return;
 
     setMsg(""); // rensa gammal status
-    setMsg("Uploading...");
+    setMsg("Laddar upp...");
 
     const fd = new FormData();
     fd.append("file", file);
@@ -109,13 +131,13 @@ export default function DocumentsPage() {
 
     const data = await res.json();
     if (!res.ok) {
-      setMsg(data?.error ?? "Upload failed");
+      setMsg(data?.error ?? "Uppladdning misslyckades");
       // om session dog: uppdatera me
       await loadMe();
       return;
     }
 
-    setMsg("Uploaded ✅");
+    setMsg("Uppladdat ✅");
     await loadDocs();
 
     setTimeout(() => {
@@ -139,12 +161,12 @@ export default function DocumentsPage() {
 
     const data = await res.json();
     if (!res.ok) {
-      setMsg(data?.error ?? "Delete failed");
+      setMsg(data?.error ?? "Radering misslyckades");
       await loadMe();
       return;
     }
 
-    setMsg(`🗑️ Deleted document ${id}`);
+    setMsg(`🗑️ Raderade dokument ${id}`);
     await loadDocs();
   }
 
@@ -181,7 +203,7 @@ export default function DocumentsPage() {
 
   return (
     <main className="min-h-screen bg-black text-white p-6">
-      <h1 className="text-2xl mb-6 text-center">Documents</h1>
+      <h1 className="text-2xl mb-6 text-center">Dokument</h1>
 
       {/* Upload */}
       <div className="mx-auto max-w-2xl rounded border border-gray-800 p-4">
@@ -266,11 +288,11 @@ export default function DocumentsPage() {
                 onChange={e => setCategory(e.target.value)}
                 className="rounded border border-gray-700 bg-gray-900 px-3 py-2 text-sm"
               >
-                <option value="meeting_notes">Mötesanteckningar</option>
-                <option value="reports">Rapporter</option>
-                <option value="docs">Dokumentation</option>
-                <option value="project">Projektbeskrivningar</option>
-                <option value="other">Övrigt</option>
+                {CATEGORY_OPTIONS.map(o => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -283,7 +305,7 @@ export default function DocumentsPage() {
                   : "bg-cyan-500 text-black"
               }`}
             >
-              Upload
+              Ladda upp
             </button>
           </div>
         </div>
@@ -294,10 +316,10 @@ export default function DocumentsPage() {
           </div>
         )}
 
-        {msg === "Uploaded ✅" && (
+        {msg === "Uppladdat ✅" && (
           <div className="mt-3 text-xs text-green-400">✓ Uppladdat</div>
         )}
-        {msg && msg !== "Uploaded ✅" && (
+        {msg && msg !== "Uppladdat ✅" && (
           <div className="mt-3 text-sm">{msg}</div>
         )}
       </div>
@@ -319,11 +341,11 @@ export default function DocumentsPage() {
             title="Filter kategori"
           >
             <option value="all">Alla kategorier</option>
-            <option value="meeting_notes">Mötesanteckningar</option>
-            <option value="reports">Rapporter</option>
-            <option value="docs">Dokumentation</option>
-            <option value="project">Projekt</option>
-            <option value="other">Övrigt</option>
+            {CATEGORY_OPTIONS.map(o => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </select>
 
           <select
@@ -333,9 +355,11 @@ export default function DocumentsPage() {
             title="Filter status"
           >
             <option value="all">Alla status</option>
-            <option value="ready">ready</option>
-            <option value="processing">processing</option>
-            <option value="failed">failed</option>
+            {STATUS_OPTIONS.map(o => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </select>
 
           <label className="flex items-center gap-2 text-sm whitespace-nowrap">
@@ -362,7 +386,7 @@ export default function DocumentsPage() {
 
       <div className="mx-auto max-w-2xl space-y-3">
         {loading ? (
-          <div>Loading...</div>
+          <div>Laddar...</div>
         ) : sortedDocs.length === 0 ? (
           <div>Inga dokument matchar din sökning.</div>
         ) : (
@@ -387,14 +411,17 @@ export default function DocumentsPage() {
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{d.title}</span>
                       {d.status && (
-                        <span className="opacity-70"> — {d.status}</span>
+                        <span className="opacity-70">
+                          {" "}
+                          — {STATUS_LABEL[d.status] ?? d.status}
+                        </span>
                       )}
                     </div>
 
                     <div className="text-xs text-gray-400 flex flex-wrap items-center gap-x-3 gap-y-1">
                       {d.category && (
                         <span className="uppercase tracking-wide text-gray-500">
-                          {d.category.replaceAll("_", " ")}
+                          {CATEGORY_LABEL[d.category] ?? d.category}
                         </span>
                       )}
 
@@ -406,7 +433,7 @@ export default function DocumentsPage() {
                       ) : (
                         <span className="flex items-center gap-1 text-gray-400">
                           <span className="text-gray-500">•</span>
-                          {d.uploaderEmail ?? `User #${d.userId}`}
+                          {d.uploaderEmail ?? `Användare #${d.userId}`}
                         </span>
                       )}
                     </div>
@@ -433,9 +460,9 @@ export default function DocumentsPage() {
                   <button
                     onClick={() => deleteDoc(d.id, d.title)}
                     className="ml-4 rounded border border-red-500 px-3 py-1 text-sm text-red-400 hover:bg-red-500 hover:text-black"
-                    title="Delete document"
+                    title="Radera dokument"
                   >
-                    Delete
+                    Radera
                   </button>
                 )}
               </div>
