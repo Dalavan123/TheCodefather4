@@ -46,11 +46,18 @@ export async function getAllDocuments(params?: GetDocumentsParams) {
           email: true,
         },
       },
+
+
+      _count: {
+        select: {
+          comments: true,
+        },
+      },
     },
   });
 
   // enkelt för frontend
-  return docs.map(d => ({
+  return docs.map((d) => ({
     id: d.id,
     title: d.title,
     userId: d.userId,
@@ -58,5 +65,8 @@ export async function getAllDocuments(params?: GetDocumentsParams) {
     status: d.status,
     createdAt: d.createdAt,
     uploaderEmail: d.user?.email ?? null,
+
+    
+    commentsCount: d._count.comments,
   }));
 }

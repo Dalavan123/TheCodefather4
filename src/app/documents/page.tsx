@@ -12,6 +12,7 @@ type Doc = {
   category?: string;
   status?: string;
   createdAt?: string;
+  commentsCount?: number;
 };
 
 // liten debounce-hook
@@ -384,12 +385,17 @@ export default function DocumentsPage() {
                     href={`/documents/${d.id}`}
                     className="cursor-pointer hover:bg-gray-800/60 rounded p-2 -m-2"
                   >
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{d.title}</span>
-                      {d.status && (
-                        <span className="opacity-70"> — {d.status}</span>
-                      )}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{d.title}</span>
+                        {d.status && <span className="opacity-70"> — {d.status}</span>}
+                      </div>
+
+                      <span className="text-xs text-gray-300 rounded-full border border-gray-700 bg-black/40 px-2 py-0.5 whitespace-nowrap">
+                        💬 {d.commentsCount ?? 0}
+                      </span>
                     </div>
+
 
                     <div className="text-xs text-gray-400 flex flex-wrap items-center gap-x-3 gap-y-1">
                       {d.category && (
