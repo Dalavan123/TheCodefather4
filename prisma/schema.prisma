@@ -1,6 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
-  previewFeatures = ["driverAdapters"] 
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 // Use TURSO_DATABASE_URL in production (Vercel), fallback to DATABASE_URL locally
@@ -31,9 +31,10 @@ model Document {
   status       String   @default("ready")
   createdAt    DateTime @default(now())
 
-  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  chunks   Chunk[]
-  comments DocumentComment[]
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chunks        Chunk[]
+  comments      DocumentComment[]
+  conversations Conversation[]
 }
 
 model Chunk {
@@ -64,6 +65,9 @@ model Conversation {
   userId    Int
   title     String   @default("Ny konversation")
   createdAt DateTime @default(now())
+
+  documentId Int?
+  document   Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages Message[]

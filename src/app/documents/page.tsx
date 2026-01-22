@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isMyDocument } from "@/lib/docLogic";
+import { useRouter } from "next/navigation";
+
 
 type Doc = {
   id: number;
@@ -12,6 +14,7 @@ type Doc = {
   category?: string;
   status?: string;
   createdAt?: string;
+  commentsCount?: number;
 };
 
 // liten debounce-hook
@@ -147,6 +150,36 @@ export default function DocumentsPage() {
     setMsg(`🗑️ Deleted document ${id}`);
     await loadDocs();
   }
+
+    const router = useRouter();
+
+  async function askAI(doc: Doc) {
+    if (meUserId === null) {
+     setMsg("Du måste vara inloggad för att använda AI-assistenten.");
+     return;
+   }
+
+    setMsg("Skapar AI-konversation...");
+
+   const res = await fetch("/api/conversations", {
+     method: "POST",
+     headers: { "Content-Type": "application/json" },
+     body: JSON.stringify({
+        title: `AI: ${doc.title}`,
+        documentId: doc.id, // ✅ kopplar konversationen till dokumentet
+     }),
+    });
+
+    const data = await res.json();
+   if (!res.ok) {
+     setMsg(data?.error ?? "Kunde inte skapa konversation");
+     return;
+   }
+
+   setMsg("");
+    router.push(`/conversations/${data.id}`);
+  }
+
 
   function resetFilters() {
     setQ("");
@@ -384,12 +417,17 @@ export default function DocumentsPage() {
                     href={`/documents/${d.id}`}
                     className="cursor-pointer hover:bg-gray-800/60 rounded p-2 -m-2"
                   >
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{d.title}</span>
-                      {d.status && (
-                        <span className="opacity-70"> — {d.status}</span>
-                      )}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{d.title}</span>
+                        {d.status && <span className="opacity-70"> — {d.status}</span>}
+                      </div>
+
+                      <span className="text-xs text-gray-300 rounded-full border border-gray-700 bg-black/40 px-2 py-0.5 whitespace-nowrap">
+                        💬 {d.commentsCount ?? 0}
+                      </span>
                     </div>
+
 
                     <div className="text-xs text-gray-400 flex flex-wrap items-center gap-x-3 gap-y-1">
                       {d.category && (
@@ -427,6 +465,18 @@ export default function DocumentsPage() {
                     })}
                   </div>
                 )}
+                  <button
+                    onClick={() => askAI(d)}
+                    disabled={meUserId === null}
+                    className={`ml-4 rounded border px-3 py-1 text-sm whitespace-nowrap ${
+                     meUserId === null
+                    ? "border-gray-700 text-gray-500 cursor-not-allowed"
+                    : "border-cyan-500 text-cyan-300 hover:bg-cyan-500 hover:text-black"
+                }`}
+                    title="Ställ en fråga om detta dokument"
+                  >
+                    Fråga AI
+                  </button>
 
                 {/* Delete endast för ägaren */}
                 {isMine && (
