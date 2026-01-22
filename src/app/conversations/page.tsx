@@ -33,8 +33,6 @@ export default function ConversationsPage() {
   }, []);
 
   async function createConversation() {
-    setMsg("Skapar...");
-
     const res = await fetch("/api/conversations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -48,9 +46,6 @@ export default function ConversationsPage() {
       return;
     }
 
-    setMsg("✅ Skapad!");
-    
-    // ✅ direkt till chatten
     router.push(`/conversations/${data.id}`);
   }
 
@@ -58,7 +53,7 @@ export default function ConversationsPage() {
     <main className="min-h-screen bg-black text-white p-6">
       <div className="mx-auto max-w-2xl">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Conversations</h1>
+          <h1 className="text-2xl font-semibold">Konversationer</h1>
 
           <button
             onClick={createConversation}
@@ -68,15 +63,15 @@ export default function ConversationsPage() {
           </button>
         </div>
 
-        {msg && <div className="mt-3 text-sm opacity-80">{msg}</div>}
+        {msg && <div className="mt-3 text-sm text-red-400">{msg}</div>}
 
         <div className="mt-6 space-y-3">
           {loading ? (
-            <div>Loading...</div>
+            <div>Laddar...</div>
           ) : convos.length === 0 ? (
             <div>Inga konversationer ännu.</div>
           ) : (
-            convos.map((c) => (
+            convos.map(c => (
               <Link
                 key={c.id}
                 href={`/conversations/${c.id}`}
