@@ -28,6 +28,9 @@ describe("Document Service Tests", () => {
           user: {
             email: "test@example.com",
           },
+
+          // ✅ NYTT: mocka _count (comments)
+          _count: { comments: 2 },
         },
         {
           id: "2",
@@ -39,12 +42,13 @@ describe("Document Service Tests", () => {
           user: {
             email: "user2@example.com",
           },
+
+          // ✅ NYTT
+          _count: { comments: 0 },
         },
       ];
 
-      (prisma.document.findMany as jest.Mock).mockResolvedValue(
-        mockDbDocuments
-      );
+      (prisma.document.findMany as jest.Mock).mockResolvedValue(mockDbDocuments);
 
       const result = await getAllDocuments();
 
@@ -65,6 +69,13 @@ describe("Document Service Tests", () => {
               email: true,
             },
           },
+
+          // ✅ NYTT: matchar nya queryn i service
+          _count: {
+            select: {
+              comments: true,
+            },
+          },
         },
       });
 
@@ -77,6 +88,9 @@ describe("Document Service Tests", () => {
           status: "active",
           createdAt: new Date("2026-01-10"),
           uploaderEmail: "test@example.com",
+
+          // ✅ NYTT: service returnerar alltid commentsCount
+          commentsCount: 2,
         },
         {
           id: "2",
@@ -86,6 +100,9 @@ describe("Document Service Tests", () => {
           status: "archived",
           createdAt: new Date("2026-01-12"),
           uploaderEmail: "user2@example.com",
+
+          // ✅ NYTT
+          commentsCount: 0,
         },
       ]);
     });
@@ -100,16 +117,20 @@ describe("Document Service Tests", () => {
           status: "active",
           createdAt: new Date("2026-01-10"),
           user: null,
+
+          // ✅ NYTT: även här (så commentsCount blir stabilt)
+          _count: { comments: 0 },
         },
       ];
 
-      (prisma.document.findMany as jest.Mock).mockResolvedValue(
-        mockDbDocuments
-      );
+      (prisma.document.findMany as jest.Mock).mockResolvedValue(mockDbDocuments);
 
       const result = await getAllDocuments();
 
       expect(result[0].uploaderEmail).toBeNull();
+
+      // ✅ NYTT: kontrollera commentsCount också
+      expect(result[0].commentsCount).toBe(0);
     });
 
     it("should return empty array when no documents exist", async () => {
@@ -131,6 +152,9 @@ describe("Document Service Tests", () => {
           status: "active",
           createdAt: new Date("2026-01-14"),
           user: { email: "newest@test.com" },
+
+          // ✅ NYTT
+          _count: { comments: 1 },
         },
         {
           id: "1",
@@ -140,12 +164,13 @@ describe("Document Service Tests", () => {
           status: "active",
           createdAt: new Date("2026-01-10"),
           user: { email: "oldest@test.com" },
+
+          // ✅ NYTT
+          _count: { comments: 0 },
         },
       ];
 
-      (prisma.document.findMany as jest.Mock).mockResolvedValue(
-        mockDbDocuments
-      );
+      (prisma.document.findMany as jest.Mock).mockResolvedValue(mockDbDocuments);
 
       const result = await getAllDocuments();
 
@@ -165,9 +190,7 @@ describe("Document Service Tests", () => {
         new Error("Database connection failed")
       );
 
-      await expect(getAllDocuments()).rejects.toThrow(
-        "Database connection failed"
-      );
+      await expect(getAllDocuments()).rejects.toThrow("Database connection failed");
     });
   });
 });
