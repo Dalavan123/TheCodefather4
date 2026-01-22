@@ -3,11 +3,11 @@ generator client {
   previewFeatures = ["driverAdapters"]
 }
 
-// Use TURSO_DATABASE_URL in production (Vercel), fallback to DATABASE_URL locally
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  url      = "file:./dev.db"
 }
+
 
 model User {
   id           Int      @id @default(autoincrement())
