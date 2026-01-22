@@ -47,7 +47,7 @@ export async function getAllDocuments(params?: GetDocumentsParams) {
         },
       },
 
-
+      // ✅ NYTT: så vi kan visa antal kommentarer
       _count: {
         select: {
           comments: true,
@@ -66,7 +66,7 @@ export async function getAllDocuments(params?: GetDocumentsParams) {
     createdAt: d.createdAt,
     uploaderEmail: d.user?.email ?? null,
 
-    
-    commentsCount: d._count.comments,
+    // ✅ FIX: krascha inte om _count saknas i mock/test
+    commentsCount: d._count?.comments ?? 0,
   }));
 }
