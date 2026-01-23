@@ -5,22 +5,20 @@ import { createClient } from "@libsql/client";
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 function createPrismaClient(): PrismaClient {
-  // ENDAST på Vercel (NODE_ENV=production): använd Turso
-  const isProduction = process.env.NODE_ENV === "production";
-  
-  if (isProduction) {
-    const tursoUrl = process.env.TURSO_DATABASE_URL;
-    const tursoToken = process.env.TURSO_AUTH_TOKEN;
+  const isVercel = process.env.VERCEL === "1";
 
-    if (tursoUrl && tursoToken) {
-      const libsql = createClient({ url: tursoUrl, authToken: tursoToken });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const adapter = new PrismaLibSql(libsql as any);
-      return new PrismaClient({ adapter, log: ["error"] });
-    }
+  const tursoUrl = process.env.TURSO_DATABASE_URL;
+  const tursoToken = process.env.TURSO_AUTH_TOKEN;
+
+  // ✅ Bara på Vercel + om variabler finns → använd Turso adapter
+  if (isVercel && tursoUrl && tursoToken) {
+    const libsql = createClient({ url: tursoUrl, authToken: tursoToken });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const adapter = new PrismaLibSql(libsql as any);
+    return new PrismaClient({ adapter, log: ["error"] });
   }
 
-  // Lokalt: använd SQLite
+  // ✅ Annars (lokalt, CI, tests) → vanlig Prisma (DATABASE_URL)
   return new PrismaClient({ log: ["error", "warn"] });
 }
 
