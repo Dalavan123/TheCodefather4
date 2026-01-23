@@ -1,23 +1,23 @@
-import { POST as registerPOST } from '@/app/api/auth/register/route';
-import { POST as loginPOST } from '@/app/api/auth/login/route';
-import { prisma } from '@/lib/prisma';
-import bcrypt from 'bcryptjs';
-import { NextRequest } from 'next/server';
+import { POST as registerPOST } from "@/app/api/auth/register/route";
+import { POST as loginPOST } from "@/app/api/auth/login/route";
+import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
+import { NextRequest } from "next/server";
 
-// Mock dependencies
-jest.mock('@/lib/prisma', () => ({
-  prisma: {
-    user: {
-      findUnique: jest.fn(),
-      create: jest.fn(),
-    },
-    session: {
-      create: jest.fn(),
-    },
-  },
-}));
+// ✅ Mock prisma utan out-of-scope variabler (skapas INUTI factory)
+jest.mock("@/lib/prisma", () => {
+  const mockPrisma = {
+    user: { create: jest.fn(), findUnique: jest.fn() },
+    session: { create: jest.fn(), delete: jest.fn() },
+  };
 
-jest.mock('bcryptjs');
+  return {
+    prisma: mockPrisma,
+    getPrisma: () => mockPrisma,
+  };
+});
+
+jest.mock("bcryptjs");
 
 describe('Auth API Tests', () => {
   beforeEach(() => {
