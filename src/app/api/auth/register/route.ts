@@ -27,21 +27,32 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, user });
   } catch (err: unknown) {
-    // ✅ Prisma "unique constraint" (email finns redan)
-    if (
-      err instanceof Prisma.PrismaClientKnownRequestError &&
-      err.code === "P2002"
-    ) {
-      return NextResponse.json({ error: "Email already exists" }, { status: 409 });
+    // ✅ Prisma: unique constraint (email already exists)
+    if (err instanceof Prisma.PrismaClientKnownRequestError) {
+      if (err.code === "P2002") {
+        return NextResponse.json(
+          { error: "Email already exists" },
+          { status: 409 }
+        );
+      }
     }
 
-    // ✅ fallback för tester/mocks som kastar "Unique constraint"
-    const msg = err instanceof Error ? err.message : String(err);
-    if (msg.toLowerCase().includes("unique constraint")) {
-      return NextResponse.json({ error: "Email already exists" }, { status: 409 });
+    // ✅ Jest-test: mockar felet som vanlig Error("Unique constraint")
+    if (err instanceof Error) {
+      const msg = err.message.toLowerCase();
+      if (msg.includes("unique constraint") || msg.includes("p2002")) {
+        return NextResponse.json(
+          { error: "Email already exists" },
+          { status: 409 }
+        );
+      }
     }
 
     console.error("REGISTER ERROR:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Something went wrong" },
+      { status: 500 }
+    );
   }
 }

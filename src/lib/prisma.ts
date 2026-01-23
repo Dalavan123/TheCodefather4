@@ -10,15 +10,25 @@ function createPrismaClient(): PrismaClient {
   const tursoUrl = process.env.TURSO_DATABASE_URL;
   const tursoToken = process.env.TURSO_AUTH_TOKEN;
 
-  // ✅ Bara på Vercel + om variabler finns → använd Turso adapter
-  if (isVercel && tursoUrl && tursoToken) {
+  if (isVercel) {
+    if (!tursoUrl || !tursoToken) {
+      console.error("❌ Missing Turso env vars on Vercel:", {
+        TURSO_DATABASE_URL: tursoUrl,
+        TURSO_AUTH_TOKEN: tursoToken ? "OK" : "MISSING",
+      });
+
+      // VIKTIGT: krascha tydligt istället för att Prisma blir konstig
+      throw new Error("Missing TURSO env vars on Vercel");
+    }
+
     const libsql = createClient({ url: tursoUrl, authToken: tursoToken });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const adapter = new PrismaLibSql(libsql as any);
+
     return new PrismaClient({ adapter, log: ["error"] });
   }
 
-  // ✅ Annars (lokalt, CI, tests) → vanlig Prisma (DATABASE_URL)
+  // lokalt/test: vanlig sqlite (DATABASE_URL)
   return new PrismaClient({ log: ["error", "warn"] });
 }
 
