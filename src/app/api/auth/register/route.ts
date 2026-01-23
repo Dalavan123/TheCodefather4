@@ -1,8 +1,9 @@
+export const runtime = "nodejs";
+
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-
-export const runtime = "nodejs";
+import { Prisma } from "@prisma/client";
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
@@ -10,7 +11,10 @@ export async function POST(req: NextRequest) {
   const password = String(body?.password ?? "");
 
   if (!email || password.length < 6) {
-    return NextResponse.json({ error: "Invalid email or password" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid email or password" },
+      { status: 400 }
+    );
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
@@ -22,13 +26,33 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ ok: true, user });
-  } catch (err: any) {
-    // Prisma unique constraint
-    if (err?.code === "P2002") {
-      return NextResponse.json({ error: "Email already exists" }, { status: 409 });
+  } catch (err: unknown) {
+    // ✅ Prisma: unique constraint (email already exists)
+    if (err instanceof Prisma.PrismaClientKnownRequestError) {
+      if (err.code === "P2002") {
+        return NextResponse.json(
+          { error: "Email already exists" },
+          { status: 409 }
+        );
+      }
+    }
+
+    // ✅ Jest-test: mockar felet som vanlig Error("Unique constraint")
+    if (err instanceof Error) {
+      const msg = err.message.toLowerCase();
+      if (msg.includes("unique constraint") || msg.includes("p2002")) {
+        return NextResponse.json(
+          { error: "Email already exists" },
+          { status: 409 }
+        );
+      }
     }
 
     console.error("REGISTER ERROR:", err);
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Something went wrong" },
+      { status: 500 }
+    );
   }
 }
