@@ -77,6 +77,12 @@ För att se och hantera data i databasen:
 npx prisma studio
 ```
 
+### Uppdatera databasen med tabeller, kolumner
+
+```bash
+npx prisma migrate dev
+```
+
 ### Reset databasen
 
 Om du behöver återställa databasen:
