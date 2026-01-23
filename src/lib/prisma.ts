@@ -5,20 +5,21 @@ import { createClient } from "@libsql/client";
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 function createPrismaClient(): PrismaClient {
+  // ✅ Endast Vercel runtime ska använda Turso
+  const isVercel = process.env.VERCEL === "1";
+
   const url = process.env.DATABASE_URL || process.env.TURSO_DATABASE_URL;
   const authToken = process.env.TURSO_AUTH_TOKEN;
 
-  const isProd = process.env.NODE_ENV === "production";
-
-  // I prod (Vercel) måste vi ha URL + token
-  if (isProd) {
+  if (isVercel) {
     if (!url || !authToken) {
-      console.error("❌ Missing DB env vars:", {
+      console.error("❌ Missing Turso env vars on Vercel runtime:", {
         DATABASE_URL: process.env.DATABASE_URL ? "OK" : "MISSING",
         TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL ? "OK" : "MISSING",
         TURSO_AUTH_TOKEN: authToken ? "OK" : "MISSING",
       });
-      throw new Error("Missing DATABASE_URL / TURSO_AUTH_TOKEN");
+
+      throw new Error("Missing DATABASE_URL/TURSO_AUTH_TOKEN on Vercel");
     }
 
     const libsql = createClient({ url, authToken });
@@ -28,9 +29,12 @@ function createPrismaClient(): PrismaClient {
     return new PrismaClient({ adapter, log: ["error"] });
   }
 
-  // lokalt kan du köra sqlite fil om du vill
+  // ✅ Lokalt / CI: Prisma skapas utan Turso (så build inte dör)
   return new PrismaClient({ log: ["error", "warn"] });
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
+}
