@@ -5,16 +5,14 @@ import bcrypt from 'bcryptjs';
 import { NextRequest } from 'next/server';
 
 // Mock dependencies
-jest.mock('@/lib/prisma', () => ({
-  prisma: {
-    user: {
-      findUnique: jest.fn(),
-      create: jest.fn(),
-    },
-    session: {
-      create: jest.fn(),
-    },
-  },
+const prismaMock = {
+  user: { create: jest.fn(), findUnique: jest.fn() },
+  session: { create: jest.fn(), delete: jest.fn() },
+};
+
+jest.mock("@/lib/prisma", () => ({
+  prisma: prismaMock,
+  getPrisma: () => prismaMock, // ✅ viktig
 }));
 
 jest.mock('bcryptjs');
