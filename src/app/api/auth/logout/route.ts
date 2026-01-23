@@ -2,7 +2,8 @@ export const runtime = "nodejs";
 
 
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
+
 import { cookies } from "next/headers";
 
 const SESSION_COOKIE = "session_token";
@@ -10,6 +11,8 @@ const SESSION_COOKIE = "session_token";
 export async function POST() {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
+  const prisma = getPrisma();
+
 
   if (token) {
     await prisma.session.delete({ where: { token } }).catch(() => {});

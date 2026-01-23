@@ -1,16 +1,16 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+let prisma: PrismaClient | null = null;
 
 function createPrismaClient(): PrismaClient {
-  const isVercel = process.env["VERCEL"] === "1"; // ✅ bracket access
+  const isVercel = process.env["VERCEL"] === "1";
 
   if (isVercel) {
-    const url = process.env["TURSO_DATABASE_URL"];      // ✅ bracket access
-    const authToken = process.env["TURSO_AUTH_TOKEN"];  // ✅ bracket access
+    const url = process.env["TURSO_DATABASE_URL"];
+    const authToken = process.env["TURSO_AUTH_TOKEN"];
 
-    console.error("PRISMA INIT:", {
+    console.error("PRISMA INIT (LAZY):", {
       VERCEL: process.env["VERCEL"],
       TURSO_DATABASE_URL: url ? `OK(len=${url.length})` : "MISSING",
       TURSO_AUTH_TOKEN: authToken ? `OK(len=${authToken.length})` : "MISSING",
@@ -24,12 +24,11 @@ function createPrismaClient(): PrismaClient {
     return new PrismaClient({ adapter, log: ["error"] });
   }
 
-  // lokalt/CI: sqlite via schema dev.db
+  // Lokalt/CI: vanlig sqlite (schema: file:./dev.db)
   return new PrismaClient({ log: ["error", "warn"] });
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+export function getPrisma(): PrismaClient {
+  if (!prisma) prisma = createPrismaClient();
+  return prisma;
 }
