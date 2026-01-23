@@ -1,21 +1,25 @@
+// Mock dependencies
+const mockPrisma = {
+  user: { create: jest.fn(), findUnique: jest.fn() },
+  session: { create: jest.fn(), delete: jest.fn() },
+};
+
+
+jest.mock("@/lib/prisma", () => ({
+  prisma: mockPrisma,
+  getPrisma: () => mockPrisma,
+}));
+
+jest.mock('bcryptjs');
+
+
 import { POST as registerPOST } from '@/app/api/auth/register/route';
 import { POST as loginPOST } from '@/app/api/auth/login/route';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { NextRequest } from 'next/server';
 
-// Mock dependencies
-const prismaMock = {
-  user: { create: jest.fn(), findUnique: jest.fn() },
-  session: { create: jest.fn(), delete: jest.fn() },
-};
 
-jest.mock("@/lib/prisma", () => ({
-  prisma: prismaMock,
-  getPrisma: () => prismaMock, // ✅ viktig
-}));
-
-jest.mock('bcryptjs');
 
 describe('Auth API Tests', () => {
   beforeEach(() => {
