@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 
-let prisma: PrismaClient | null = null;
+let prismaSingleton: PrismaClient | null = null;
 
 function createPrismaClient(): PrismaClient {
   const isVercel = process.env["VERCEL"] === "1";
@@ -24,11 +24,13 @@ function createPrismaClient(): PrismaClient {
     return new PrismaClient({ adapter, log: ["error"] });
   }
 
-  // Lokalt/CI: vanlig sqlite (schema: file:./dev.db)
   return new PrismaClient({ log: ["error", "warn"] });
 }
 
 export function getPrisma(): PrismaClient {
-  if (!prisma) prisma = createPrismaClient();
-  return prisma;
+  if (!prismaSingleton) prismaSingleton = createPrismaClient();
+  return prismaSingleton;
 }
+
+// ✅ Kompatibilitet: så gamla imports fortsätter funka
+export const prisma = getPrisma();
