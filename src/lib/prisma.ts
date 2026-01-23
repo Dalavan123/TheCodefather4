@@ -7,25 +7,22 @@ function createPrismaClient(): PrismaClient {
   const isVercel = process.env.VERCEL === "1";
 
   if (isVercel) {
-    // ✅ ta URL från DATABASE_URL först (du har den i Vercel)
-    const url = process.env.DATABASE_URL || process.env.TURSO_DATABASE_URL;
+    const url = process.env.TURSO_DATABASE_URL;
     const authToken = process.env.TURSO_AUTH_TOKEN;
 
     if (!url || !authToken) {
       console.error("❌ Missing Turso env vars on Vercel:", {
-        DATABASE_URL: process.env.DATABASE_URL ? "OK" : "MISSING",
-        TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL ? "OK" : "MISSING",
+        TURSO_DATABASE_URL: url ? "OK" : "MISSING",
         TURSO_AUTH_TOKEN: authToken ? "OK" : "MISSING",
       });
-      throw new Error("Missing DATABASE_URL/TURSO_AUTH_TOKEN on Vercel");
+      throw new Error("Missing TURSO env vars");
     }
 
-    // ✅ Viktigt: ge config till adapter direkt
     const adapter = new PrismaLibSql({ url, authToken });
     return new PrismaClient({ adapter, log: ["error"] });
   }
 
-  // ✅ lokalt/CI -> vanlig sqlite (DATABASE_URL=file:...)
+  // lokalt: vanlig sqlite-fil (dev.db)
   return new PrismaClient({ log: ["error", "warn"] });
 }
 
