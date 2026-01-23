@@ -2,7 +2,7 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/backend/auth/session";
-import { getPrisma } from "@/lib/prisma";
+
 
 
 export async function GET() {
