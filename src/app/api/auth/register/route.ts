@@ -10,6 +10,14 @@ export async function POST(req: NextRequest) {
   const email = String(body?.email ?? "").trim().toLowerCase();
   const password = String(body?.password ?? "");
 
+  console.error("ENV CHECK:", {
+  VERCEL: process.env.VERCEL,
+  DATABASE_URL: process.env.DATABASE_URL ? "OK" : "MISSING",
+  TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL ? "OK" : "MISSING",
+  TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN ? "OK" : "MISSING",
+});
+
+
   if (!email || password.length < 6) {
     return NextResponse.json(
       { error: "Invalid email or password" },

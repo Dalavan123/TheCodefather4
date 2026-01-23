@@ -1,39 +1,31 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
-import { createClient } from "@libsql/client";
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 function createPrismaClient(): PrismaClient {
   const isVercel = process.env.VERCEL === "1";
 
-  const tursoUrl = process.env.TURSO_DATABASE_URL;
-  const tursoToken = process.env.TURSO_AUTH_TOKEN;
-
   if (isVercel) {
-    if (!tursoUrl || !tursoToken) {
-      console.error("❌ Missing Turso env vars on Vercel:", {
-        TURSO_DATABASE_URL: tursoUrl,
-        TURSO_AUTH_TOKEN: tursoToken ? "OK" : "MISSING",
-      });
+    const url = process.env.TURSO_DATABASE_URL;
+    const authToken = process.env.TURSO_AUTH_TOKEN;
 
-      // VIKTIGT: krascha tydligt istället för att Prisma blir konstig
-      throw new Error("Missing TURSO env vars on Vercel");
+    console.error("PRISMA INIT ENV:", {
+      VERCEL: process.env.VERCEL,
+      TURSO_DATABASE_URL: url ? "OK" : "MISSING",
+      TURSO_AUTH_TOKEN: authToken ? "OK" : "MISSING",
+    });
+
+    if (!url || !authToken) {
+      throw new Error("Missing TURSO_DATABASE_URL / TURSO_AUTH_TOKEN");
     }
 
-    const libsql = createClient({ url: tursoUrl, authToken: tursoToken });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const adapter = new PrismaLibSql(libsql as any);
-
+    const adapter = new PrismaLibSql({ url, authToken });
     return new PrismaClient({ adapter, log: ["error"] });
   }
 
-  // lokalt/test: vanlig sqlite (DATABASE_URL)
   return new PrismaClient({ log: ["error", "warn"] });
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
