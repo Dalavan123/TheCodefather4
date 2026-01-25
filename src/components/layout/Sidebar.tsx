@@ -6,13 +6,6 @@ interface SidebarProps {
   isOpen: boolean;
 }
 
-const SIDEBAR_TEXT = {
-  title: "Meny",
-  assistant: "Dokumentassistent",
-  documents: "Dokument",
-  conversations: "Konversationer",
-};
-
 export default function Sidebar({ isOpen }: SidebarProps) {
   return (
     <aside
@@ -21,25 +14,23 @@ export default function Sidebar({ isOpen }: SidebarProps) {
       } overflow-hidden`}
     >
       <div className="p-4">
-        <h2 className="text-xl font-bold mb-6">{SIDEBAR_TEXT.title}</h2>
+        <div>
+          <h2 className="text-xl font-bold mb-6">Menu</h2>
+        </div>
 
         <nav className="space-y-2">
-          <span className="block p-3 rounded text-gray-300">
-            {SIDEBAR_TEXT.assistant}
-          </span>
-
+          
           <Link
             href="/documents"
             className="block hover:bg-gray-800 p-3 rounded"
           >
-            {SIDEBAR_TEXT.documents}
+            Documents
           </Link>
-
           <Link
             href="/conversations"
             className="block hover:bg-gray-800 p-3 rounded"
           >
-            {SIDEBAR_TEXT.conversations}
+            Conversations
           </Link>
         </nav>
       </div>
