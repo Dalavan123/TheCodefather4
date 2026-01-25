@@ -8,7 +8,10 @@ type Conversation = {
   id: number;
   title: string;
   createdAt: string;
+  documentId: number | null;
+  document?: { id: number; title: string } | null;
 };
+
 
 export default function ConversationsPage() {
   const router = useRouter();
@@ -71,16 +74,48 @@ export default function ConversationsPage() {
           ) : convos.length === 0 ? (
             <div>Inga konversationer ännu.</div>
           ) : (
-            convos.map(c => (
-              <Link
-                key={c.id}
-                href={`/conversations/${c.id}`}
-                className="block rounded border border-gray-800 bg-gray-900 p-4 hover:bg-gray-800/50"
-              >
-                <div className="font-medium">{c.title}</div>
-                <div className="text-xs opacity-60">{c.createdAt}</div>
-              </Link>
-            ))
+            convos.map(c => {
+  const isGlobal = c.documentId === null;
+
+  return (
+    <Link
+      key={c.id}
+      href={`/conversations/${c.id}`}
+      className="block rounded border border-gray-800 bg-gray-900 p-4 hover:bg-gray-800/50 transition"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          {/* Titel */}
+          <div className="font-medium truncate">{c.title}</div>
+
+          {/* Typ: Global / Dokument */}
+          <div className="mt-1 flex items-center gap-2 flex-wrap">
+            {isGlobal ? (
+              <span className="text-xs rounded-full border border-cyan-500/60 bg-cyan-500/10 px-2 py-0.5 text-cyan-300">
+                Global
+              </span>
+            ) : (
+              <span className="text-xs rounded-full border border-purple-500/60 bg-purple-500/10 px-2 py-0.5 text-purple-200">
+                Dokument: {c.document?.title ?? `#${c.documentId}`}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Datum */}
+        <div className="text-xs opacity-60 whitespace-nowrap">
+          {new Date(c.createdAt).toLocaleString("sv-SE", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </div>
+      </div>
+    </Link>
+  );
+})
           )}
         </div>
       </div>
