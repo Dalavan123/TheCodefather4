@@ -14,67 +14,66 @@ function normalize(s: string) {
     .trim();
 }
 
-function pickBestLines(question: string, text: string, maxLines = 6) {
+function pickBestLines(question: string, text: string, maxLines = 5) {
   const qWords = normalize(question)
     .split(" ")
-    .filter((w) => w.length >= 3);
+    .filter(w => w.length >= 3);
 
   const lines = text
     .split("\n")
-    .map((l) => l.trim())
+    .map(l => l.trim())
     .filter(Boolean);
 
-  // scorad line = antal keywords som matchar
   const scored = lines
-    .map((line) => {
+    .map(line => {
       const n = normalize(line);
       const hits = qWords.reduce((acc, w) => acc + (n.includes(w) ? 1 : 0), 0);
       return { line, hits };
     })
-    .filter((x) => x.hits > 0)
+    .filter(x => x.hits > 0)
     .sort((a, b) => b.hits - a.hits)
     .slice(0, maxLines)
-    .map((x) => x.line);
+    .map(x => x.line);
 
   return scored;
 }
 
 export function buildFakeAiAnswer(question: string, chunks: ChunkHit[]) {
   if (!chunks.length) {
-    return `Jag hittade inget i dokumenten som matchar frågan:\n\n"${question}"\n\nTips: prova att fråga mer specifikt (t.ex. namn, datum, beslut).`;
+    return `Jag hittar inget som matchar din fråga just nu.\n\n👉 Prova att skriva mer specifikt (t.ex. namn, datum eller en rubrik som finns i dokumentet).`;
   }
 
-  // Plocka ut bra rader från de mest relevanta chunks
+  const topChunks = chunks.slice(0, 3);
+
+  // plocka ut relevanta rader
   const bestLines: string[] = [];
-  for (const c of chunks.slice(0, 3)) {
-    const lines = pickBestLines(question, c.content, 4);
+  for (const c of topChunks) {
+    const lines = pickBestLines(question, c.content, 3);
     for (const l of lines) {
-      if (bestLines.length >= 8) break;
+      if (bestLines.length >= 6) break;
       if (!bestLines.includes(l)) bestLines.push(l);
     }
-    if (bestLines.length >= 8) break;
+    if (bestLines.length >= 6) break;
   }
 
-  const topSource = chunks[0];
-
-  const sources = chunks.slice(0, 3).map((c) => {
-    return `• doc#${c.documentId} "${c.document.title}" (chunk#${c.chunkIndex})`;
+  // snyggare “källor”
+  const sources = topChunks.map(c => {
+    return `• ${c.document.title} (avsnitt ${c.chunkIndex + 1})`;
   });
 
-  // Om vi hittar “matchande rader” → presentera dem
+  // om vi hittade bra rader
   if (bestLines.length > 0) {
-    return `Jag hittade detta som verkar relevant:\n\n${bestLines
-      .map((l) => `- ${l}`)
+    return `Här är det mest relevanta jag hittar 👇\n\n${bestLines
+      .map(l => `• ${l}`)
       .join("\n")}\n\nKällor:\n${sources.join("\n")}`;
   }
 
-  // annars visa ett utdrag från bästa chunk
+  // fallback: visa snippet
+  const topSource = chunks[0];
   const snippet =
-    topSource.content.length > 550
-      ? topSource.content.slice(0, 550) + "..."
+    topSource.content.length > 500
+      ? topSource.content.slice(0, 500) + "..."
       : topSource.content;
 
-  return `Jag hittade relevant text i dokumenten, här är ett utdrag:\n\n"${snippet}"\n\nKällor:\n${sources.join(
-    "\n"
-  )}`;
+  return `Jag hittar relevant text i dokumenten, men inget som matchar exakt rad-för-rad.\n\nUtdrag:\n"${snippet}"\n\nKällor:\n${sources.join("\n")}`;
 }
