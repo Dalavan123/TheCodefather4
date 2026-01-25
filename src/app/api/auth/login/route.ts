@@ -3,7 +3,8 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
+
 
 const SESSION_COOKIE = "session_token";
 
@@ -11,6 +12,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const email = String(body?.email ?? "").trim().toLowerCase();
   const password = String(body?.password ?? "");
+  const prisma = getPrisma();
+
 
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) return NextResponse.json({ error: "Fel email eller lösenord" }, { status: 401 });
