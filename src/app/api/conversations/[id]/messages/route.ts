@@ -64,6 +64,10 @@ export async function POST(
 
   const body = await req.json().catch(() => ({}));
   const content = String(body?.content ?? "").trim();
+  const rawDocId = body?.documentId;
+  const requestedDocId =
+    rawDocId === null || rawDocId === undefined ? null : Number(rawDocId);
+
 
   if (!content) {
     return NextResponse.json({ error: "Missing content" }, { status: 400 });
@@ -100,13 +104,28 @@ export async function POST(
     },
   });
 
+  let effectiveDocumentId: number | undefined = undefined;
+
+// Om konversationen redan är kopplad till dokument → lås den
+if (convo.documentId) {
+  effectiveDocumentId = convo.documentId;
+} else {
+  // Global konversation → tillåt att frågan skickar docId
+  if (requestedDocId !== null && Number.isFinite(requestedDocId) && requestedDocId > 0) {
+    // valfritt men snyggt: säkerställ att dokumentet finns
+    const docExists = await prisma.document.findUnique({
+      where: { id: requestedDocId },
+      select: { id: true },
+    });
+
+    if (docExists) effectiveDocumentId = requestedDocId;
+  }
+}
+
   // 3) RAG: hitta relevanta chunks
   // Om convo.documentId finns → sök endast i det dokumentet
-  const hits = await findRelevantChunks(
-    content,
-    6,
-    convo.documentId ?? undefined
-  );
+  const hits = await findRelevantChunks(content, 6, effectiveDocumentId);
+
 
   // 4) Bygg Fake-AI svar (utan OpenAI)
   const assistantContent = buildFakeAiAnswer(content, hits);
