@@ -43,6 +43,9 @@ export default function Sidebar({ isOpen }: SidebarProps) {
           >
             Konversationer
           </Link>
+          <Link href="/devops" className="block hover:bg-gray-800 p-3 rounded">
+             DevOps
+          </Link>
         </nav>
       </div>
     </aside>
