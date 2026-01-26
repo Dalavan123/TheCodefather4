@@ -28,7 +28,7 @@ export async function GET() {
   };
 
   // 3) DB-check (superbra att visa DevOps)
-  let db = {
+  const db = {
     ok: false,
     latencyMs: null as number | null,
     error: null as string | null,
