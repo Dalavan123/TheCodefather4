@@ -1,16 +1,24 @@
 name: CI
 
 on:
-  push:
-    branches: 
-      - main
-      - 'feature/**'
   pull_request:
     branches: ["main"]
+  push:
+    branches: ["main"]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   build-and-check:
     runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: "file:./test.db"
 
     steps:
       - name: Checkout
@@ -36,10 +44,6 @@ jobs:
 
       - name: Run Tests
         run: npm test
-        env:
-          DATABASE_URL: "file:./test.db"
 
       - name: Build
         run: npm run build
-        env:
-          DATABASE_URL: "file:./test.db"
