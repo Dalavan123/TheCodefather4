@@ -46,7 +46,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<ChatResponseB
     });
     const answer = result.response.candidates?.[0]?.content?.parts?.[0]?.text || "I don't know.";
     return NextResponse.json({ answer });
-  } catch (error: any) {
-    return NextResponse.json({ answer: '', error: error?.message || 'Unknown error' }, { status: 500 });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ answer: '', error: msg || 'Unknown error' }, { status: 500 });
   }
 }

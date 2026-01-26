@@ -7,7 +7,6 @@ type ModalState = {
   error: string | null;
 };
 import { isMyDocument } from "@/lib/docLogic";
-import { useRouter } from "next/navigation";
 
 type Doc = {
   id: number;
@@ -32,7 +31,7 @@ function useDebouncedValue<T>(value: T, delayMs = 300) {
 
 export default function DocumentsPage() {
   const [modal, setModal] = useState<ModalState>({ loading: false, error: null });
-  const router = useRouter();
+  // router was removed because we use window.location.href for navigation here
   const [file, setFile] = useState<File | null>(null);
   const [category, setCategory] = useState("meeting_notes");
   const [msg, setMsg] = useState<string>("");
@@ -202,7 +201,9 @@ export default function DocumentsPage() {
       let convoId: number | null = null;
       const resConvos = await fetch("/api/conversations");
       const convos = await resConvos.json();
-      const existing = Array.isArray(convos) ? convos.find((c: any) => c.documentId === doc.id) : null;
+      const existing = Array.isArray(convos)
+        ? convos.find((c: { documentId?: number | null }) => c.documentId === doc.id)
+        : null;
       if (existing) {
         convoId = existing.id;
       } else {
@@ -219,7 +220,7 @@ export default function DocumentsPage() {
         convoId = newConvo.id;
       }
       // 4. Skicka frågan som nytt meddelande i konversationen
-      const resMsg = await fetch(`/api/conversations/${convoId}/messages`, {
+      await fetch(`/api/conversations/${convoId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: userMessage }),
@@ -227,8 +228,9 @@ export default function DocumentsPage() {
       // 5. Visa loading-overlay i minst 500ms innan redirect
       await new Promise(resolve => setTimeout(resolve, 500));
       window.location.href = `/conversations/${convoId}`;
-    } catch (e: any) {
-      setModal({ loading: false, error: e?.message || "Något gick fel" });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setModal({ loading: false, error: msg || "Något gick fel" });
     }
   }
 

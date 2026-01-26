@@ -132,8 +132,9 @@ export async function POST(
       ],
     });
     aiAnswer = result.response.candidates?.[0]?.content?.parts?.[0]?.text || "I don't know.";
-  } catch (e: any) {
-    aiError = e?.message || "AI error";
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    aiError = msg || "AI error";
     aiAnswer = aiError;
   }
 

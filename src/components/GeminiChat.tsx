@@ -34,8 +34,9 @@ export default function GeminiChat() {
       const data: ChatResponseBody = await res.json();
       if (data.error) setError(data.error);
       else setResponse(data.answer);
-    } catch (e: any) {
-      setError(e.message || "Unknown error");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg || "Unknown error");
     } finally {
       setLoading(false);
     }
