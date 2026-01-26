@@ -1,138 +1,173 @@
-# TheCodefather4
+# The Codefathers – Dokumentassistent (Next.js + Turso)
 
-En Next.js-applikation för dokumenthantering med användarautentisering.
+En webbaserad dokumentassistent där användare kan ladda upp textdokument och ställa frågor om dem via en “AI-assistent” (RAG/fake-ai).
+
+---
 
 ## Funktioner
 
-- Användarregistrering och inloggning (session-baserad)
-- Uppladdning av dokument (.txt, .md)
-- Automatisk chunkning av dokument
-- Visning och radering av egna dokument
+### Autentisering
+- Registrering och inloggning (session-baserad med httpOnly-cookie)
+- Logga ut
+- Skyddade endpoints (kräver inloggning)
+
+### Dokument
+- Ladda upp `.txt` och `.md`
+- Automatisk chunkning av dokument vid uppladdning
+- Dokumentlista med sök & filter (kategori/status + “mina dokument”)
+- Dokumentdetaljer med innehållsförhandsvisning
+- Kommentarer per dokument
+- Radera dokument (endast ägare)
+
+### AI-assistent / Konversationer
+- Dokument-konversationer (frågor kopplade till ett specifikt dokument)
+- Global konversation (frågor över alla dokument)
+- Dokumentlista i höger-sidebar för global konversation (välj scope)
+- “Fake-AI” som svarar baserat på matchningar mot dokumentens chunks + visar källor
+
+### DevOps / Drift
+- GitHub Actions CI: lint + typecheck + test + build
+- Branch protection: `main` kräver grön CI innan merge
+- Health-endpoint: `/api/health` visar env-status + DB-check
+
+---
 
 ## Tech Stack
+- Next.js 15 (App Router)
+- Prisma ORM
+- Turso (SQLite i produktion) + SQLite lokalt
+- Tailwind CSS
+- bcryptjs (lösenordshash)
+- GitHub Actions (CI)
 
-- Next.js 15 med App Router
-- Prisma ORM med SQLite
-- bcryptjs för lösenordshashing
-- Tailwind CSS för styling
+---
 
-## Installation
+## Kom igång lokalt
 
-### 1. Klona projektet
-
+### 1) Klona projektet
 ```bash
 git clone https://github.com/AdrianCPO/TheCodefather4.git
 cd TheCodefather4
 ```
 
-### 2. Installera dependencies
-
+### 2) Installera dependencies
 ```bash
-npm install
+npm ci
 ```
 
-### 3. Skapa .env fil
-
-Skapa en `.env` fil i projektets rot och lägg till:
+### 3) Skapa `.env`
+Skapa en `.env` i projektets rot och fyll i:
 
 ```env
-DATABASE_URL="file:./data/TheCodeFather4.db"
+# Lokalt (SQLite)
+DATABASE_URL="file:./dev.db"
+
+# Turso (endast på Vercel/produktion)
+TURSO_DATABASE_URL=""
+TURSO_AUTH_TOKEN=""
 ```
 
-### 4. Sätt upp databasen
-
-Generera Prisma Client:
-
+### 4) Initiera databasen (Prisma)
 ```bash
 npx prisma generate
-```
-
-Kör migrationer för att skapa databasen:
-
-```bash
 npx prisma migrate dev --name init
 ```
 
-(Valfritt) Seed databasen med testdata:
-
-```bash
-npx prisma db seed
-```
-
-### 5. Starta utvecklingsservern
-
+### 5) Starta appen
 ```bash
 npm run dev
 ```
 
-Öppna [http://localhost:3000](http://localhost:3000) i din webbläsare.
+Öppna: http://localhost:3000
 
-## Databashantering
+---
 
-### Öppna Prisma Studio
+## CI/CD (GitHub Actions)
 
-För att se och hantera data i databasen:
+Projektet har en CI-pipeline som körs automatiskt vid:
+- Pull Request till `main`
+- Push till `main`
 
-```bash
-npx prisma studio
-```
+CI kör följande steg:
+- `npm ci`
+- `npx prisma generate`
+- `npm run lint`
+- `npm run typecheck`
+- `npm test`
+- `npm run build`
 
-### Uppdatera databasen med tabeller, kolumner
+Målet är att stoppa trasig kod innan den mergas till `main`.
 
-```bash
-npx prisma migrate dev
-```
+---
 
-### Reset databasen
+## Branch protection
 
-Om du behöver återställa databasen:
+Branch protection är aktiverad för `main`:
+- Kräver Pull Request innan merge
+- Kräver godkänd CI (status checks)
+- Kräver att branchen är “up to date” innan merge
 
-```bash
-npx prisma migrate reset
-```
+---
 
-## Användning
+## Health endpoint (DevOps)
 
-1. **Registrera ett konto:** Gå till `/register`
-2. **Logga in:** Gå till `/login`
-3. **Ladda upp dokument:** Gå till `/documents` efter inloggning
+För att visa driftstatus:
+- `GET /api/health`
 
-## API Endpoints
+Den svarar med JSON som innehåller:
+- env-status (OK/MISSING)
+- deploy-info (commit, branch via Vercel)
+- databasstatus (ok + latency)
 
-- `POST /api/auth/register` - Skapa nytt konto
-- `POST /api/auth/login` - Logga in
-- `POST /api/auth/logout` - Logga ut
-- `GET /api/auth/me` - Hämta inloggad användare
-- `POST /api/documents/upload` - Ladda upp dokument (kräver inloggning)
-- `GET /api/documents` - Lista alla dokument
-- `DELETE /api/documents/[id]` - Radera dokument (endast ägare)
+---
 
-## Testning
+## API Endpoints (urval)
 
-Kör tester med Jest:
+### Auth
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `GET /api/auth/me`
 
-```bash
-npm test
-```
+### Dokument
+- `GET /api/documents`
+- `POST /api/documents/upload` (kräver login)
+- `GET /api/documents/[id]`
+- `DELETE /api/documents/[id]` (endast ägare)
 
-## Databasschema
+### Kommentarer
+- `GET /api/documents/[id]/comments`
+- `POST /api/documents/[id]/comments` (kräver login)
+- `DELETE /api/documents/[id]/comments/[commentId]` (endast ägare)
 
-### User
+### Konversationer
+- `GET /api/conversations` (kräver login)
+- `POST /api/conversations` (kräver login)
+- `GET /api/conversations/[id]` (kräver login)
+- `GET /api/conversations/[id]/messages`
+- `POST /api/conversations/[id]/messages`
 
-- id, email, password, createdAt
+---
 
-### Session
+## Datamodell (Prisma)
 
-- id, userId, token, expiresAt, createdAt
+Projektet använder följande modeller:
+- User
+- Session
+- Document
+- Chunk
+- Conversation
+- Message
+- DocumentComment
 
-### Document
+---
 
-- id, name, size, mimeType, userId, createdAt
+## Begränsningar (v1)
+- Endast textfiler (`.txt` och `.md`)
+- Ingen riktig LLM/OpenAI används – “Fake-AI” bygger svar via keyword-matchning mot chunks
+- Inga användarroller (admin) i v1
 
-### Chunk
-
-- id, documentId, content, chunkIndex, createdAt
+---
 
 ## Licens
-
-Detta är ett skolprojekt.
+Skolprojekt (Jensen YH).
