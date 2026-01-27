@@ -12,14 +12,15 @@ type Conversation = {
   document?: { id: number; title: string } | null;
 };
 
-
 export default function ConversationsPage() {
   const router = useRouter();
 
+  // List-state + enkel UI-status
   const [convos, setConvos] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
 
+  // Hämtar användarens konversationer (kräver inloggning via cookie/session)
   async function load() {
     setLoading(true);
     try {
@@ -31,10 +32,12 @@ export default function ConversationsPage() {
     }
   }
 
+  // Initial load när sidan öppnas
   useEffect(() => {
     load();
   }, []);
 
+  // Skapar en ny konversation och navigerar direkt till detaljsidan
   async function createConversation() {
     const res = await fetch("/api/conversations", {
       method: "POST",
@@ -61,11 +64,13 @@ export default function ConversationsPage() {
           <button
             onClick={createConversation}
             className="rounded bg-cyan-500 px-4 py-2 text-sm text-black hover:bg-cyan-400"
+            title="Skapa en ny konversation"
           >
             + Ny
           </button>
         </div>
 
+        {/* Fel/info-meddelande från API:t */}
         {msg && <div className="mt-3 text-sm text-red-400">{msg}</div>}
 
         <div className="mt-6 space-y-3">
@@ -75,47 +80,48 @@ export default function ConversationsPage() {
             <div>Inga konversationer ännu.</div>
           ) : (
             convos.map(c => {
-  const isGlobal = c.documentId === null;
+              // Global konversation saknar documentId
+              const isGlobal = c.documentId === null;
 
-  return (
-    <Link
-      key={c.id}
-      href={`/conversations/${c.id}`}
-      className="block rounded border border-gray-800 bg-gray-900 p-4 hover:bg-gray-800/50 transition"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          {/* Titel */}
-          <div className="font-medium truncate">{c.title}</div>
+              return (
+                <Link
+                  key={c.id}
+                  href={`/conversations/${c.id}`}
+                  className="block rounded border border-gray-800 bg-gray-900 p-4 hover:bg-gray-800/50 transition"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      {/* Titel */}
+                      <div className="font-medium truncate">{c.title}</div>
 
-          {/* Typ: Global / Dokument */}
-          <div className="mt-1 flex items-center gap-2 flex-wrap">
-            {isGlobal ? (
-              <span className="text-xs rounded-full border border-cyan-500/60 bg-cyan-500/10 px-2 py-0.5 text-cyan-300">
-                Global
-              </span>
-            ) : (
-              <span className="text-xs rounded-full border border-purple-500/60 bg-purple-500/10 px-2 py-0.5 text-purple-200">
-                Dokument: {c.document?.title ?? `#${c.documentId}`}
-              </span>
-            )}
-          </div>
-        </div>
+                      {/* Visar om konversationen är global eller kopplad till ett dokument */}
+                      <div className="mt-1 flex items-center gap-2 flex-wrap">
+                        {isGlobal ? (
+                          <span className="text-xs rounded-full border border-cyan-500/60 bg-cyan-500/10 px-2 py-0.5 text-cyan-300">
+                            Global
+                          </span>
+                        ) : (
+                          <span className="text-xs rounded-full border border-purple-500/60 bg-purple-500/10 px-2 py-0.5 text-purple-200">
+                            Dokument: {c.document?.title ?? `#${c.documentId}`}
+                          </span>
+                        )}
+                      </div>
+                    </div>
 
-        {/* Datum */}
-        <div className="text-xs opacity-60 whitespace-nowrap">
-          {new Date(c.createdAt).toLocaleString("sv-SE", {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </div>
-      </div>
-    </Link>
-  );
-})
+                    {/* Datum (för sortering/översikt) */}
+                    <div className="text-xs opacity-60 whitespace-nowrap">
+                      {new Date(c.createdAt).toLocaleString("sv-SE", {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })
           )}
         </div>
       </div>

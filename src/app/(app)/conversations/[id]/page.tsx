@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 // Typer av AI-leverantörer
 const AI_PROVIDERS = [
-  { value: "local", label: "Lokal sökning (snabb)" },
+  { value: "local", label: "Fake AI" },
   { value: "gemini", label: "Gemini (Google AI)" },
 ];
 import { useParams } from "next/navigation";
@@ -36,21 +36,26 @@ export default function ConversationPage() {
     // Nuvarande AI-leverantör
     const [aiProvider, setAiProvider] = useState<string>("local");
   const params = useParams();
+  // URL-param kommer som string → konvertera till number för API-anrop
   const id = Number(params.id);
 
+  // Meddelanden i konversationen
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(true);
 
+  // Metadata om konversationen (titel, dokumentkoppling)
   const [convo, setConvo] = useState<ConvoMeta | null>(null);
 
+  // Alla dokument (används för global sökning)
   const [docs, setDocs] = useState<Doc[]>([]);
   const [docsLoading, setDocsLoading] = useState(false);
   const [docSearch, setDocSearch] = useState("");
 
-  // ✅ vilket dokument frågan ska gälla (null = alla dokument)
+  // Vilket dokument frågan ska gälla (null = alla dokument)
   const [scopeDocId, setScopeDocId] = useState<number | null>(null);
 
+  // Används för att auto-scrolla till senaste meddelandet
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   // ======= LOADERS =======
@@ -75,7 +80,7 @@ export default function ConversationPage() {
     if (res.ok) {
       setConvo(data);
 
-      // ✅ Om konversationen är kopplad till ett dokument → lås scopen
+      // Om konversationen är kopplad till ett dokument → lås scopen
       if (data.documentId) {
         setScopeDocId(data.documentId);
       }
@@ -93,7 +98,7 @@ export default function ConversationPage() {
     }
   }
 
-  // Initial load för denna konversation
+  // Initial load när sidan öppnas eller id ändras
   useEffect(() => {
     if (!Number.isFinite(id)) return;
 
@@ -103,7 +108,7 @@ export default function ConversationPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // Scrolla ner när nya meddelanden kommer
+  // Scrolla automatiskt till botten när nya meddelanden kommer
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
@@ -116,11 +121,11 @@ export default function ConversationPage() {
     const text = input.trim();
     setInput("");
 
-    // Optimistic UI
+    // Optimistic UI: visa direkt medan requesten pågår
     const tempUserId = Date.now();
     const tempAssistantId = Date.now() + 1;
 
-    setMessages((prev) => [
+    setMessages(prev => [
       ...prev,
       {
         id: tempUserId,
@@ -149,34 +154,35 @@ export default function ConversationPage() {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      // ta bort placeholder om det failar
-      setMessages((prev) => prev.filter((m) => m.id !== tempAssistantId));
+      // Vid fel: ta bort placeholder
+      setMessages(prev => prev.filter(m => m.id !== tempAssistantId));
       return;
     }
 
-    // ersätt placeholder med assistantMessage från API
-    setMessages((prev) =>
-      prev.map((m) => {
+    // Ersätt placeholder med svaret från API:t
+    setMessages(prev =>
+      prev.map(m => {
         if (m.id === tempAssistantId) return data.assistantMessage;
         return m;
-      })
+      }),
     );
   }
 
   // ======= DERIVED UI =======
+  // UI-logik som beräknas från state (ingen egen state behövs)
 
   const isGlobalConvo = convo?.documentId === null || convo === null;
 
   const scopedDocTitle = useMemo(() => {
     if (!scopeDocId) return null;
-    const found = docs.find((d) => d.id === scopeDocId);
+    const found = docs.find(d => d.id === scopeDocId);
     return found?.title ?? `Dokument #${scopeDocId}`;
   }, [scopeDocId, docs]);
 
   const filteredDocs = useMemo(() => {
     const s = docSearch.trim().toLowerCase();
     if (!s) return docs;
-    return docs.filter((d) => d.title.toLowerCase().includes(s));
+    return docs.filter(d => d.title.toLowerCase().includes(s));
   }, [docs, docSearch]);
 
   // ======= UI =======
@@ -235,7 +241,8 @@ export default function ConversationPage() {
             {/* Om konvo är dokument-kopplad, visa info */}
             {convo?.documentId && (
               <div className="mt-2 text-xs text-gray-400">
-                Den här konversationen är kopplad till dokumentet och söker bara där.
+                Den här konversationen är kopplad till dokumentet och söker bara
+                där.
               </div>
             )}
           </div>
@@ -247,7 +254,7 @@ export default function ConversationPage() {
             ) : messages.length === 0 ? (
               <div>Inga meddelanden ännu.</div>
             ) : (
-              messages.map((m) => (
+              messages.map(m => (
                 <div
                   key={m.id}
                   className={`max-w-[75%] rounded px-4 py-2 text-sm whitespace-pre-wrap ${
@@ -268,10 +275,10 @@ export default function ConversationPage() {
           <div className="mt-4 flex gap-2 shrink-0">
             <input
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={e => setInput(e.target.value)}
               placeholder="Skriv ett meddelande..."
               className="flex-1 rounded border border-gray-700 bg-black px-3 py-2 text-sm"
-              onKeyDown={(e) => {
+              onKeyDown={e => {
                 if (e.key === "Enter") send();
               }}
             />
@@ -291,7 +298,7 @@ export default function ConversationPage() {
 
             <input
               value={docSearch}
-              onChange={(e) => setDocSearch(e.target.value)}
+              onChange={e => setDocSearch(e.target.value)}
               placeholder="Sök dokument..."
               className="rounded border border-gray-700 bg-black px-3 py-2 text-sm mb-3"
             />
@@ -308,7 +315,7 @@ export default function ConversationPage() {
                   Inga dokument matchar sökningen.
                 </div>
               ) : (
-                filteredDocs.slice(0, 80).map((d) => (
+                filteredDocs.slice(0, 80).map(d => (
                   <button
                     key={d.id}
                     onClick={() => setScopeDocId(d.id)}

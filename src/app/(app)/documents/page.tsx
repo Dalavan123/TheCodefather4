@@ -19,7 +19,7 @@ type Doc = {
   commentsCount?: number;
 };
 
-// liten debounce-hook
+// Liten debounce-hook för sökfältet så vi inte spammar API:t vid varje knapptryck.
 function useDebouncedValue<T>(value: T, delayMs = 300) {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
@@ -31,17 +31,19 @@ function useDebouncedValue<T>(value: T, delayMs = 300) {
 
 export default function DocumentsPage() {
   const [modal, setModal] = useState<ModalState>({ loading: false, error: null });
-  // router was removed because we use window.location.href for navigation here
   const [file, setFile] = useState<File | null>(null);
   const [category, setCategory] = useState("meeting_notes");
   const [msg, setMsg] = useState<string>("");
 
+  // Dokumentlista + inloggad användare
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loading, setLoading] = useState(true);
   const [meUserId, setMeUserId] = useState<number | null>(null);
 
+  // Används för att kunna rensa <input type="file"> efter lyckad upload.
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Visningsdata för kategorier (value -> label)
   const CATEGORY_OPTIONS = [
     { value: "meeting_notes", label: "Mötesanteckningar" },
     { value: "reports", label: "Rapporter" },
@@ -50,21 +52,24 @@ export default function DocumentsPage() {
     { value: "other", label: "Övrigt" },
   ] as const;
 
+  // Snabb lookup för label i listan (för att slippa if/else överallt)
   const CATEGORY_LABEL: Record<string, string> = Object.fromEntries(
-    CATEGORY_OPTIONS.map(o => [o.value, o.label])
+    CATEGORY_OPTIONS.map(o => [o.value, o.label]),
   ) as Record<string, string>;
 
-  // Drag and drop
+  // Drag and drop-state (UI-feedback i dropzonen)
   const [isDragging, setIsDragging] = useState(false);
 
-  // Sök + filter
+  // Sök + filter-state (påverkar query mot /api/documents)
   const [q, setQ] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [onlyMine, setOnlyMine] = useState(false);
 
+  // Debounce på söket för bättre UX och färre requests
   const debouncedQ = useDebouncedValue(q, 300);
 
+  // Visningsdata för status (value -> label)
   const STATUS_OPTIONS = [
     { value: "ready", label: "Klar" },
     { value: "processing", label: "Bearbetar" },
@@ -72,19 +77,22 @@ export default function DocumentsPage() {
   ] as const;
 
   const STATUS_LABEL: Record<string, string> = Object.fromEntries(
-    STATUS_OPTIONS.map(o => [o.value, o.label])
+    STATUS_OPTIONS.map(o => [o.value, o.label]),
   ) as Record<string, string>;
 
+  // Hämtar inloggad användare (för ägarkoll + låsa upp actions i UI)
   async function loadMe() {
     try {
       const res = await fetch("/api/auth/me", { method: "GET" });
       const data = await res.json();
       setMeUserId(data?.user?.id ?? null);
     } catch {
+      // Om något går fel antar vi att användaren inte är inloggad
       setMeUserId(null);
     }
   }
 
+  // Bygger querystring baserat på sök/filter. Memo för att bara ändras när input ändras.
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
     if (debouncedQ.trim()) params.set("q", debouncedQ.trim());
@@ -96,12 +104,13 @@ export default function DocumentsPage() {
     return s ? `?${s}` : "";
   }, [debouncedQ, filterCategory, filterStatus, onlyMine]);
 
+  // Hämtar dokumentlista utifrån aktuella filter
   async function loadDocs() {
     setLoading(true);
     try {
       const res = await fetch(`/api/documents${queryString}`, {
         method: "GET",
-        cache: "no-store",
+        cache: "no-store", // vi vill alltid se senaste listan
       });
       const data = await res.json();
       setDocs(Array.isArray(data) ? data : []);
@@ -110,17 +119,18 @@ export default function DocumentsPage() {
     }
   }
 
-  // initial load
+  // Initial load av auth-state
   useEffect(() => {
     loadMe();
   }, []);
 
-  // ladda docs varje gång query/filter ändras
+  // Ladda docs varje gång query/filter ändras
   useEffect(() => {
     loadDocs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryString]);
 
+  // Upload av fil + category (FormData)
   async function upload() {
     if (!file) return;
 
@@ -139,25 +149,27 @@ export default function DocumentsPage() {
     const data = await res.json();
     if (!res.ok) {
       setMsg(data?.error ?? "Uppladdning misslyckades");
-      // om session dog: uppdatera me
+      // Om sessionen dog: uppdatera UI-läget för inloggning
       await loadMe();
       return;
     }
 
     setMsg("Uppladdat ✅");
-    await loadDocs();
+    await loadDocs(); // uppdatera listan direkt
 
+    // Rensa statusmeddelandet efter en stund för renare UI
     setTimeout(() => {
       setMsg("");
     }, 2500);
 
-    // ✅ NYTT – rensa efter lyckad upload
+    // Rensa vald fil efter lyckad upload (både state och input-fält)
     setFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   }
 
+  // Radera dokument (endast ägare) – med enkel bekräftelse
   async function deleteDoc(id: number, title: string) {
     const ok = window.confirm(`Är du säker att du vill radera "${title}"?`);
     if (!ok) return;
@@ -177,6 +189,7 @@ export default function DocumentsPage() {
     await loadDocs();
   }
 
+  // Skapar en konversation kopplad till valt dokument och navigerar dit
   async function askAI(doc: Doc) {
     if (meUserId === null) {
       setMsg("Du måste vara inloggad för att använda AI-assistenten.");
@@ -226,14 +239,19 @@ export default function DocumentsPage() {
         body: JSON.stringify({ content: userMessage }),
       });
       // 5. Visa loading-overlay i minst 500ms innan redirect
-      await new Promise(resolve => setTimeout(resolve, 500));
-      window.location.href = `/conversations/${convoId}`;
+      await new Promise(resolve => setTimeout(resolve, 500))
+      if (convoId) {
+        window.location.href = `/conversations/${convoId}`;
+      } else {
+        setModal({ loading: false, error: "Kunde inte hitta konversations-ID" });
+      }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       setModal({ loading: false, error: msg || "Något gick fel" });
     }
   }
 
+  // Återställ filter till standardläge
   function resetFilters() {
     setQ("");
     setFilterCategory("all");
@@ -241,20 +259,22 @@ export default function DocumentsPage() {
     setOnlyMine(false);
   }
 
+  // Sortera nyast först (UI-only, påverkar inte API)
   const sortedDocs = [...docs].sort(
     (a, b) =>
       new Date(b.createdAt ?? 0).getTime() -
-      new Date(a.createdAt ?? 0).getTime()
+      new Date(a.createdAt ?? 0).getTime(),
   );
 
-  // Drag and drop
+  // Tillåt bara textfiler (både extension och mime, eftersom vissa .md kan sakna mime)
   function isAllowedFile(f: File) {
     const okExt = /\.(txt|md)$/i.test(f.name);
     const okMime =
-      f.type === "text/plain" || f.type === "text/markdown" || f.type === ""; // vissa .md kan komma som tom mime
+      f.type === "text/plain" || f.type === "text/markdown" || f.type === "";
     return okExt || okMime;
   }
 
+  // Gemensam hantering för file-picker och drag&drop
   function setPickedFile(f: File | null) {
     if (!f) return;
     if (!isAllowedFile(f)) {
@@ -286,9 +306,9 @@ export default function DocumentsPage() {
       )}
       <h1 className="text-2xl mb-6 text-center">Dokument</h1>
 
-      {/* Upload */}
+      {/* Upload-panel */}
       <div className="mx-auto max-w-2xl rounded border border-gray-800 p-4">
-        {/* Hidden file input */}
+        {/* Hidden file input – triggas via klick på dropzone */}
         <input
           ref={fileInputRef}
           id="file"
@@ -298,17 +318,17 @@ export default function DocumentsPage() {
           onChange={e => setPickedFile(e.target.files?.[0] ?? null)}
         />
 
-        {/* Dropzone (rad 1) */}
+        {/* Dropzone: klick + drag&drop */}
         <div
-          className={`rounded-lg border border-dashed px-6 py-8 text-center text-sm
-      ${meUserId === null ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}
-      ${
-        isDragging
-          ? "border-cyan-500 bg-cyan-500/10"
-          : "border-gray-700 bg-gray-900/70"
-      }
-    `}
+          className={
+            [
+              "rounded-lg border border-dashed px-6 py-8 text-center text-sm",
+              meUserId === null ? "opacity-60 cursor-not-allowed" : "cursor-pointer",
+              isDragging ? "border-cyan-500 bg-cyan-500/10" : "border-gray-700 bg-gray-900/70"
+            ].join(" ")
+          }
           onClick={() => {
+            // Lås upload UI om man inte är inloggad
             if (meUserId === null) return;
             fileInputRef.current?.click();
           }}
@@ -335,6 +355,7 @@ export default function DocumentsPage() {
           role="button"
           tabIndex={0}
           onKeyDown={e => {
+            // Grundläggande accessibility: Enter/Space öppnar filväljaren
             if (meUserId === null) return;
             if (e.key === "Enter" || e.key === " ")
               fileInputRef.current?.click();
@@ -351,14 +372,12 @@ export default function DocumentsPage() {
           </div>
         </div>
 
-        {/* Rad 2: Kategori + knapp under (som målbild-ish) */}
+        {/* Rad 2: Kategori + upload-knapp */}
         <div className="mt-4 flex items-center justify-between gap-3">
-          {/* Vänster: hint */}
           <div className="text-xs text-gray-500">
             Välj kategori och ladda upp
           </div>
 
-          {/* Höger: kontroller */}
           <div className="flex items-end gap-3">
             <div className="flex flex-col gap-1">
               <label className="text-[11px] font-medium text-gray-400">
@@ -391,12 +410,14 @@ export default function DocumentsPage() {
           </div>
         </div>
 
+        {/* Tydlig feedback när man inte är inloggad */}
         {meUserId === null && (
           <div className="mt-3 text-sm opacity-80">
             Du måste vara inloggad för att ladda upp och radera dokument.
           </div>
         )}
 
+        {/* Kort statusfeedback */}
         {msg === "Uppladdat ✅" && (
           <div className="mt-3 text-xs text-green-400">✓ Uppladdat</div>
         )}
@@ -405,7 +426,7 @@ export default function DocumentsPage() {
         )}
       </div>
 
-      {/* ✅ Sök + Filter */}
+      {/* Sök + Filter */}
       <div className="mx-auto mt-6 max-w-2xl rounded border border-gray-800 bg-gray-900 p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <input
@@ -472,17 +493,18 @@ export default function DocumentsPage() {
           <div>Inga dokument matchar din sökning.</div>
         ) : (
           sortedDocs.map(d => {
-            // OBS: använd alltid isMyDocument() – logiken är testad.
+            // Viktigt: använd helpern som är testad (centralt ställe för ägarkoll)
             const isMine = isMyDocument(meUserId, d.userId);
 
             return (
               <div
                 key={d.id}
-                className={`flex items-center justify-between rounded border px-4 py-3 bg-gray-900 ${
+                className={[
+                  "flex items-center justify-between rounded border px-4 py-3 bg-gray-900",
                   isMine
                     ? "border-gray-800 border-l-4 border-l-cyan-500/60"
                     : "border-gray-800"
-                }`}
+                ].join(" ")}
               >
                 <div className="flex flex-col gap-1 flex-1">
                   <Link
@@ -501,6 +523,7 @@ export default function DocumentsPage() {
                         )}
                       </div>
 
+                      {/* Visar antal kommentarer för snabb överblick */}
                       <span className="text-xs text-gray-300 rounded-full border border-gray-700 bg-black/40 px-2 py-0.5 whitespace-nowrap">
                         💬 {d.commentsCount ?? 0}
                       </span>
@@ -513,6 +536,7 @@ export default function DocumentsPage() {
                         </span>
                       )}
 
+                      {/* Vem som laddat upp dokumentet */}
                       {isMine ? (
                         <span className="flex items-center gap-1 text-gray-300">
                           <span className="text-gray-500">•</span>
@@ -528,6 +552,7 @@ export default function DocumentsPage() {
                   </Link>
                 </div>
 
+                {/* Datum visas om vi har createdAt */}
                 {d.createdAt && (
                   <div
                     title="Uppladdad"
@@ -542,14 +567,16 @@ export default function DocumentsPage() {
                     })}
                   </div>
                 )}
+
                 <button
                   onClick={() => askAI(d)}
                   disabled={meUserId === null}
-                  className={`ml-4 rounded border px-3 py-1 text-sm whitespace-nowrap ${
+                  className={[
+                    "ml-4 rounded border px-3 py-1 text-sm whitespace-nowrap",
                     meUserId === null
                       ? "border-gray-700 text-gray-500 cursor-not-allowed"
                       : "border-cyan-500 text-cyan-300 hover:bg-cyan-500 hover:text-black"
-                  }`}
+                  ].join(" ")}
                   title="Ställ en fråga om detta dokument"
                 >
                   Fråga AI
@@ -559,7 +586,9 @@ export default function DocumentsPage() {
                 {isMine && (
                   <button
                     onClick={() => deleteDoc(d.id, d.title)}
-                    className="ml-4 rounded border border-red-500 px-3 py-1 text-sm text-red-400 hover:bg-red-500 hover:text-black"
+                    className={[
+                      "ml-4 rounded border border-red-500 px-3 py-1 text-sm text-red-400 hover:bg-red-500 hover:text-black"
+                    ].join(" ")}
                     title="Radera dokument"
                   >
                     Radera
