@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+type ModalState = {
+  loading: boolean;
+  error: string | null;
+};
 import { isMyDocument } from "@/lib/docLogic";
-import { useRouter } from "next/navigation";
 
 type Doc = {
   id: number;
@@ -27,9 +30,7 @@ function useDebouncedValue<T>(value: T, delayMs = 300) {
 }
 
 export default function DocumentsPage() {
-  const router = useRouter();
-
-  // Upload-state
+  const [modal, setModal] = useState<ModalState>({ loading: false, error: null });
   const [file, setFile] = useState<File | null>(null);
   const [category, setCategory] = useState("meeting_notes");
   const [msg, setMsg] = useState<string>("");
@@ -194,26 +195,60 @@ export default function DocumentsPage() {
       setMsg("Du måste vara inloggad för att använda AI-assistenten.");
       return;
     }
-
-    setMsg("Skapar AI-konversation...");
-
-    const res = await fetch("/api/conversations", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: `AI: ${doc.title}`,
-        documentId: doc.id, // kopplar konversationen till dokumentet
-      }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      setMsg(data?.error ?? "Kunde inte skapa konversation");
-      return;
+    try {
+      // 1. Hämta dokumentets text
+      const resDoc = await fetch(`/api/documents/${doc.id}`);
+      const docData = await resDoc.json();
+      if (!resDoc.ok || !docData.contentText) {
+        setMsg(docData?.error || "Kunde inte hämta dokumentets text");
+        return;
+      }
+      // 2. Fråga användaren om fråga
+      const userMessage = window.prompt("Vad vill du fråga om dokumentet? (t.ex. 'Sammanfatta detta')", "Sammanfatta detta");
+      if (!userMessage) {
+        setMsg("Ingen fråga angiven.");
+        return;
+      }
+      setModal({ loading: true, error: null });
+      // 3. Hitta eller skapa konversation för dokumentet
+      let convoId: number | null = null;
+      const resConvos = await fetch("/api/conversations");
+      const convos = await resConvos.json();
+      const existing = Array.isArray(convos)
+        ? convos.find((c: { documentId?: number | null }) => c.documentId === doc.id)
+        : null;
+      if (existing) {
+        convoId = existing.id;
+      } else {
+        const resNew = await fetch("/api/conversations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: `AI: ${doc.title}`, documentId: doc.id }),
+        });
+        const newConvo = await resNew.json();
+        if (!resNew.ok || !newConvo.id) {
+          setModal({ loading: false, error: newConvo?.error || "Kunde inte skapa konversation" });
+          return;
+        }
+        convoId = newConvo.id;
+      }
+      // 4. Skicka frågan som nytt meddelande i konversationen
+      await fetch(`/api/conversations/${convoId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: userMessage }),
+      });
+      // 5. Visa loading-overlay i minst 500ms innan redirect
+      await new Promise(resolve => setTimeout(resolve, 500))
+      if (convoId) {
+        window.location.href = `/conversations/${convoId}`;
+      } else {
+        setModal({ loading: false, error: "Kunde inte hitta konversations-ID" });
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setModal({ loading: false, error: msg || "Något gick fel" });
     }
-
-    setMsg("");
-    router.push(`/conversations/${data.id}`);
   }
 
   // Återställ filter till standardläge
@@ -252,6 +287,23 @@ export default function DocumentsPage() {
 
   return (
     <main className="min-h-screen bg-black text-white p-6">
+      {modal.loading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80">
+          <div className="p-8 rounded bg-gray-900 border border-cyan-700 shadow-xl flex flex-col items-center">
+            <div className="text-cyan-300 text-lg font-semibold mb-2">AI tänker...</div>
+            <div className="text-white opacity-80 text-center">Din fråga skickas till AI och du skickas strax till konversationen...</div>
+          </div>
+        </div>
+      )}
+      {modal.error && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80">
+          <div className="p-8 rounded bg-gray-900 border border-red-700 shadow-xl flex flex-col items-center">
+            <div className="text-red-400 text-lg font-semibold mb-2">Fel</div>
+            <div className="text-white opacity-80 text-center">{modal.error}</div>
+            <button className="mt-4 px-4 py-2 rounded bg-red-700 text-white" onClick={() => setModal({ loading: false, error: null })}>Stäng</button>
+          </div>
+        </div>
+      )}
       <h1 className="text-2xl mb-6 text-center">Dokument</h1>
 
       {/* Upload-panel */}
@@ -268,14 +320,13 @@ export default function DocumentsPage() {
 
         {/* Dropzone: klick + drag&drop */}
         <div
-          className={`rounded-lg border border-dashed px-6 py-8 text-center text-sm
-      ${meUserId === null ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}
-      ${
-        isDragging
-          ? "border-cyan-500 bg-cyan-500/10"
-          : "border-gray-700 bg-gray-900/70"
-      }
-    `}
+          className={
+            [
+              "rounded-lg border border-dashed px-6 py-8 text-center text-sm",
+              meUserId === null ? "opacity-60 cursor-not-allowed" : "cursor-pointer",
+              isDragging ? "border-cyan-500 bg-cyan-500/10" : "border-gray-700 bg-gray-900/70"
+            ].join(" ")
+          }
           onClick={() => {
             // Lås upload UI om man inte är inloggad
             if (meUserId === null) return;
@@ -448,11 +499,12 @@ export default function DocumentsPage() {
             return (
               <div
                 key={d.id}
-                className={`flex items-center justify-between rounded border px-4 py-3 bg-gray-900 ${
+                className={[
+                  "flex items-center justify-between rounded border px-4 py-3 bg-gray-900",
                   isMine
                     ? "border-gray-800 border-l-4 border-l-cyan-500/60"
                     : "border-gray-800"
-                }`}
+                ].join(" ")}
               >
                 <div className="flex flex-col gap-1 flex-1">
                   <Link
@@ -519,11 +571,12 @@ export default function DocumentsPage() {
                 <button
                   onClick={() => askAI(d)}
                   disabled={meUserId === null}
-                  className={`ml-4 rounded border px-3 py-1 text-sm whitespace-nowrap ${
+                  className={[
+                    "ml-4 rounded border px-3 py-1 text-sm whitespace-nowrap",
                     meUserId === null
                       ? "border-gray-700 text-gray-500 cursor-not-allowed"
                       : "border-cyan-500 text-cyan-300 hover:bg-cyan-500 hover:text-black"
-                  }`}
+                  ].join(" ")}
                   title="Ställ en fråga om detta dokument"
                 >
                   Fråga AI
@@ -533,7 +586,9 @@ export default function DocumentsPage() {
                 {isMine && (
                   <button
                     onClick={() => deleteDoc(d.id, d.title)}
-                    className="ml-4 rounded border border-red-500 px-3 py-1 text-sm text-red-400 hover:bg-red-500 hover:text-black"
+                    className={[
+                      "ml-4 rounded border border-red-500 px-3 py-1 text-sm text-red-400 hover:bg-red-500 hover:text-black"
+                    ].join(" ")}
                     title="Radera dokument"
                   >
                     Radera

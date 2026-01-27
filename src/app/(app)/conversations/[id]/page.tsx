@@ -1,6 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+
+// Typer av AI-leverantörer
+const AI_PROVIDERS = [
+  { value: "local", label: "Fake AI" },
+  { value: "gemini", label: "Gemini (Google AI)" },
+];
 import { useParams } from "next/navigation";
 
 type Msg = {
@@ -26,6 +32,9 @@ type Doc = {
 };
 
 export default function ConversationPage() {
+
+    // Nuvarande AI-leverantör
+    const [aiProvider, setAiProvider] = useState<string>("local");
   const params = useParams();
   // URL-param kommer som string → konvertera till number för API-anrop
   const id = Number(params.id);
@@ -137,7 +146,8 @@ export default function ConversationPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         content: text,
-        documentId: scopeDocId, // styr om vi söker i alla eller valt dokument
+        documentId: scopeDocId, // ✅ styr om vi söker i alla dokument eller valt dokument
+        aiProvider,
       }),
     });
 
@@ -187,6 +197,21 @@ export default function ConversationPage() {
             <h1 className="text-xl font-semibold">
               {convo?.title ?? `Konversation #${id}`}
             </h1>
+
+            {/* اختيار مزود الذكاء الاصطناعي */}
+            <div className="mt-2 flex items-center gap-3">
+              <label htmlFor="ai-provider" className="text-sm opacity-80">AI:</label>
+              <select
+                id="ai-provider"
+                value={aiProvider}
+                onChange={e => setAiProvider(e.target.value)}
+                className="rounded border border-gray-700 bg-black px-2 py-1 text-sm"
+              >
+                {AI_PROVIDERS.map(p => (
+                  <option key={p.value} value={p.value}>{p.label}</option>
+                ))}
+              </select>
+            </div>
 
             {/* Scope info */}
             <div className="mt-2 flex items-center gap-2 flex-wrap text-sm">
