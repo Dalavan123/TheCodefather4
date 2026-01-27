@@ -130,7 +130,12 @@ export async function POST(
   // 5) Svara beroende på aiProvider
   let aiAnswer = "";
   let aiError = null;
-  let sourcesJson: Record<string, unknown> | null = null;
+  let sourcesJson: Array<{
+    id: number;
+    chunkIndex: number;
+    documentId: number;
+    documentTitle: string;
+  }> | null = null;
 
   if (aiProvider === "gemini") {
     // Gemini-läge
