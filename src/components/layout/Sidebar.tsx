@@ -1,19 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 interface SidebarProps {
   isOpen: boolean;
 }
 
-const SIDEBAR_TEXT = {
-  title: "Meny",
-  assistant: "Dokumentassistent",
-  documents: "Dokument",
-  conversations: "Konversationer",
-};
-
 export default function Sidebar({ isOpen }: SidebarProps) {
+  const pathname = usePathname();
+
+  const linkBase = "block p-3 rounded transition-colors";
+
+  const active = "bg-gray-800 text-white font-medium";
+
+  const inactive = "text-gray-300 hover:bg-gray-800";
+
   return (
     <aside
       className={`bg-black border-r border-gray-700 text-white transition-all duration-300 ${
@@ -21,25 +23,28 @@ export default function Sidebar({ isOpen }: SidebarProps) {
       } overflow-hidden`}
     >
       <div className="p-4">
-        <h2 className="text-xl font-bold mb-6">{SIDEBAR_TEXT.title}</h2>
+        <h2 className="text-xl font-bold mb-6">Meny</h2>
 
         <nav className="space-y-2">
-          <span className="block p-3 rounded text-gray-300">
-            {SIDEBAR_TEXT.assistant}
-          </span>
-
           <Link
             href="/documents"
-            className="block hover:bg-gray-800 p-3 rounded"
+            className={`${linkBase} ${
+              pathname.startsWith("/documents") ? active : inactive
+            }`}
           >
-            {SIDEBAR_TEXT.documents}
+            Dokument
           </Link>
 
           <Link
             href="/conversations"
-            className="block hover:bg-gray-800 p-3 rounded"
+            className={`${linkBase} ${
+              pathname.startsWith("/conversations") ? active : inactive
+            }`}
           >
-            {SIDEBAR_TEXT.conversations}
+            Konversationer
+          </Link>
+          <Link href="/devops" className="block hover:bg-gray-800 p-3 rounded">
+             DevOps
           </Link>
         </nav>
       </div>
