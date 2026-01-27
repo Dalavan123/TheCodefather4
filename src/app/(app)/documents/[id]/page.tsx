@@ -25,6 +25,7 @@ type Comment = {
 
 export default function DocumentDetailsPage() {
   const params = useParams();
+  // URL-parametern kommer som string → konvertera till number för API-anropen
   const id = Number(params.id);
 
   const [meUserId, setMeUserId] = useState<number | null>(null);
@@ -35,16 +36,17 @@ export default function DocumentDetailsPage() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(true);
 
+  // Kommentar-input + statusmeddelanden
   const [input, setInput] = useState("");
   const [msg, setMsg] = useState("");
 
+  // Används för att auto-scrolla till senaste kommentaren
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   const canComment = useMemo(() => meUserId !== null, [meUserId]);
 
+  // "Läs-läge": visar dokumentet större och gömmer kommentarsfältet
   const [expanded, setExpanded] = useState(false);
-
-  const [commentsOpen, setCommentsOpen] = useState(false);
 
   async function loadMe() {
     try {
@@ -55,10 +57,6 @@ export default function DocumentDetailsPage() {
       setMeUserId(null);
     }
   }
-
-  useEffect(() => {
-    if (expanded) setCommentsOpen(false);
-  }, [expanded]);
 
   async function loadDoc() {
     setDocLoading(true);
@@ -95,10 +93,12 @@ export default function DocumentDetailsPage() {
     }
   }
 
+  // Auto-scroll när listan växer (ny kommentar skickad eller hämtad)
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [comments.length]);
 
+  // Ladda allt när id ändras (t.ex. navigering mellan dokument)
   useEffect(() => {
     if (!Number.isFinite(id)) return;
 
@@ -120,6 +120,7 @@ export default function DocumentDetailsPage() {
     setMsg("");
     setInput("");
 
+    // Optimistisk UI: visa kommentaren direkt medan requesten går
     const tempId = Date.now();
     setComments(prev => [
       ...prev,
@@ -141,12 +142,14 @@ export default function DocumentDetailsPage() {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
+      // Vid fel: ta bort temp-kommentaren och visa felmeddelande
       setComments(prev => prev.filter(c => c.id !== tempId));
       setMsg(data?.error ?? "Kunde inte skicka kommentar");
       await loadMe();
       return;
     }
 
+    // Byt ut temp-kommentaren mot den riktiga från API:t
     setComments(prev => prev.map(c => (c.id === tempId ? data : c)));
   }
 
@@ -173,7 +176,7 @@ export default function DocumentDetailsPage() {
   return (
     <main className="h-full box-border bg-black text-white p-6 overflow-hidden">
       <div className="mx-auto max-w-4xl h-full min-h-0 flex flex-col gap-4">
-        {/* Top bar */}
+        {/* Top bar: navigering + statusmeddelande */}
         <div className="flex items-center justify-between shrink-0">
           <Link
             href="/documents"
@@ -184,7 +187,7 @@ export default function DocumentDetailsPage() {
           {msg && <div className="text-sm text-gray-300">{msg}</div>}
         </div>
 
-        {/* Document card */}
+        {/* Dokumentkort: kan växla till "läs-läge" */}
         <div
           className={`rounded border border-gray-800 bg-gray-900 p-5 shrink-0 overflow-hidden ${
             expanded ? "flex flex-col h-[70vh]" : "max-h-[22vh] overflow-auto"
@@ -200,6 +203,7 @@ export default function DocumentDetailsPage() {
                 <div>
                   <h1 className="text-2xl font-semibold">{doc.title}</h1>
 
+                  {/* Metadata-chippar */}
                   <div className="mt-2 text-sm text-gray-300 flex flex-wrap gap-2">
                     {doc.category && (
                       <span className="rounded-full border border-gray-700 bg-black/40 px-2 py-0.5">
@@ -232,6 +236,7 @@ export default function DocumentDetailsPage() {
                 </button>
               </div>
 
+              {/* Själva dokumentinnehållet (pre för att bevara radbrytningar) */}
               {doc.contentText ? (
                 <div className="mt-4 flex-1 min-h-0">
                   <pre
@@ -245,7 +250,7 @@ export default function DocumentDetailsPage() {
           )}
         </div>
 
-        {/* Comments */}
+        {/* Kommentarer (göm när vi är i läs-läge) */}
         {!expanded && (
           <div className="rounded border border-gray-800 bg-gray-900 p-5 flex flex-col flex-1 min-h-0">
             <div className="flex items-center justify-between shrink-0">
@@ -262,6 +267,7 @@ export default function DocumentDetailsPage() {
                 </div>
               ) : (
                 comments.map(c => {
+                  // Endast ägaren kan radera sin kommentar
                   const mine = meUserId !== null && meUserId === c.userId;
 
                   return (
@@ -305,6 +311,7 @@ export default function DocumentDetailsPage() {
                 })
               )}
 
+              {/* Ankare för scroll-to-bottom */}
               <div ref={bottomRef} />
             </div>
 
@@ -320,6 +327,7 @@ export default function DocumentDetailsPage() {
                 disabled={!canComment}
                 className="flex-1 rounded border border-gray-700 bg-black px-3 py-2 text-sm disabled:opacity-50"
                 onKeyDown={e => {
+                  // Snabbt sätt att skicka (Enter) utan att behöva klicka
                   if (e.key === "Enter") sendComment();
                 }}
               />
