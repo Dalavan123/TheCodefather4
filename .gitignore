@@ -49,3 +49,6 @@ prisma/data/*.db
 
 /app/generated/prisma
 /generated/prisma
+
+.vercel
+.env*.local
