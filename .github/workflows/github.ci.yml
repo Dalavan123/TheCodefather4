@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
     branches: ["main"]
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: cicd-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -15,6 +15,7 @@ permissions:
 
 jobs:
   build-and-check:
+    name: Build & Check
     runs-on: ubuntu-latest
 
     env:
@@ -47,3 +48,29 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  deploy-production:
+    name: Deploy to Vercel (Production)
+    needs: build-and-check
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Vercel CLI
+        run: npm i -g vercel
+
+      - name: Deploy (Production)
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_AUTH_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: vercel deploy --prod --token=$VERCEL_TOKEN
