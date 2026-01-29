@@ -40,7 +40,7 @@ export default function Navbar({ user, onToggleSidebar }: NavbarProps) {
   }, [open]);
 
   return (
-    <nav className="bg-red-600 text-white border-b border-red-400">
+    <nav className="bg-black text-white border-b border-gray-700 p-4">
       <div className="flex justify-between items-center">
         {/* LEFT */}
         <div className="flex gap-4 items-center">
