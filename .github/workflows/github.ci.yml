@@ -50,10 +50,15 @@ jobs:
         run: npm run build
 
   deploy-production:
-    name: Deploy to Vercel (Production)
+    name: Deploya till Vercel
     needs: build-and-check
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_AUTH_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
     steps:
       - name: Checkout
@@ -68,22 +73,11 @@ jobs:
       - name: Install Vercel CLI
         run: npm i -g vercel
 
-      # Hämtar Vercel-projektets inställningar + env-konfig så builden matchar Vercel
       - name: Pull Vercel environment (production)
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_AUTH_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: vercel pull --yes --environment=production --token=$VERCEL_TOKEN
 
-      # Bygger i CI med Vercel’s builder (detta blir artefakten som deployas)
       - name: Build with Vercel (production)
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_AUTH_TOKEN }}
         run: vercel build --prod --token=$VERCEL_TOKEN
 
-      # Deployar exakt det som byggdes ovan (ingen extra build på Vercel)
       - name: Deploy prebuilt (Production)
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_AUTH_TOKEN }}
         run: vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
