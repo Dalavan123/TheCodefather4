@@ -40,7 +40,7 @@ export default function Navbar({ user, onToggleSidebar }: NavbarProps) {
   }, [open]);
 
   return (
-    <nav className="bg-black text-white border-b border-gray-700 p-4">
+    <nav className="bg-red-600 text-white border-b border-red-400">
       <div className="flex justify-between items-center">
         {/* LEFT */}
         <div className="flex gap-4 items-center">
@@ -64,7 +64,7 @@ export default function Navbar({ user, onToggleSidebar }: NavbarProps) {
         {/* RIGHT */}
         <div className="relative" ref={menuRef}>
           <button
-            onClick={() => setOpen(v => !v)}
+            onClick={() => setOpen((v) => !v)}
             className={[
               "px-3 py-1.5 rounded-full text-sm flex items-center gap-2",
               "border transition",
