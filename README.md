@@ -1,3 +1,17 @@
+## Grupprojekt
+
+Detta projekt genomfördes som ett grupparbete av fyra personer inom
+kursen Frontendutveckling 2.
+
+Originalrepo:
+https://github.com/ORIGINALÄGARE/TheCodeFather4
+
+### Gruppen:
+- Adrian Jönsson
+- Omar Issa
+- Dalavan Thamhaksa
+- Joel Persson
+
 # The Codefathers – Dokumentassistent (Next.js + Turso)
 
 En webbaserad dokumentassistent där användare kan ladda upp textdokument, kommentera och ställa frågor om dem via en “AI-assistent” (RAG/fake-ai).
